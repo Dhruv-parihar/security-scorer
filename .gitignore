@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+*.pyo
+reports/
+*.json
+!data/vuln_severity.json
