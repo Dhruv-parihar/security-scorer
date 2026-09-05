@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Security Scoring Framework</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Security Scoring Framework</h1>
+    <p class="subtitle">Composite OS, Network, and Web Application risk scoring</p>
+
+    <form action="/scan" method="post">
+      <fieldset>
+        <legend>1. Select layers to test</legend>
+
+        <label class="checkbox-row">
+          <input type="checkbox" name="layers" value="os_hardening">
+          OS Hardening (checks the machine this app is running on)
+        </label>
+
+        <label class="checkbox-row">
+          <input type="checkbox" name="layers" value="network">
+          Network Vulnerability Scan
+        </label>
+        <input type="text" name="network_target" placeholder="Target IP, e.g. 192.168.56.102">
+
+        <label class="checkbox-row">
+          <input type="checkbox" name="layers" value="webapp">
+          Web Application Scan
+        </label>
+        <input type="text" name="webapp_target" placeholder="Target URL, e.g. http://192.168.56.102/dvwa/vulnerabilities/sqli/?id=1">
+      </fieldset>
+
+      <button type="submit">Run Scan</button>
+    </form>
+
+    <p class="disclaimer">
+      Only scan systems you own or have explicit permission to test.
+    </p>
+  </div>
+</body>
+</html>

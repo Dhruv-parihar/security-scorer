@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Scan Results</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Scan Results</h1>
+
+    {% if errors %}
+      <div class="errors">
+        {% for e in errors %}<p>⚠ {{ e }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    {% if composite.composite_score is not none %}
+      <div class="composite-box">
+        <h2>Composite Score: {{ composite.composite_score }}/100</h2>
+        <p>Weakest layer: <strong>{{ composite.weakest_layer }}</strong> — prioritize fixing this first.</p>
+
+        <table>
+          <tr><th>Layer</th><th>Score</th><th>Weight Used</th></tr>
+          {% for layer, info in composite.layers.items() %}
+          <tr>
+            <td>{{ layer }}</td>
+            <td>{{ info.score }}/100</td>
+            <td>{{ info.weight_used }}</td>
+          </tr>
+          {% endfor %}
+        </table>
+      </div>
+
+      <h2>Ranked Recommendations</h2>
+      <table>
+        <tr><th>#</th><th>Severity</th><th>Layer</th><th>Recommendation</th></tr>
+        {% for rec in composite.recommendations %}
+        <tr class="sev-{{ rec.severity }}">
+          <td>{{ loop.index }}</td>
+          <td>{{ rec.severity.upper() }}</td>
+          <td>{{ rec.layer }}</td>
+          <td>{{ rec.recommendation }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endif %}
+
+    <h2>Detailed Findings</h2>
+    {% for layer, result in layer_results.items() %}
+      <h3>{{ layer }} — {{ result.score }}/100</h3>
+      <table>
+        <tr><th>Status</th><th>Severity</th><th>Detail</th></tr>
+        {% for f in result.findings %}
+        <tr class="{{ 'pass' if f.passed else 'fail' }}">
+          <td>{{ "PASS" if f.passed else "FAIL" }}</td>
+          <td>{{ f.severity }}</td>
+          <td>{{ f.description or f.note or f.id }}</td>
+        </tr>
+        {% endfor %}
+      </table>
+    {% endfor %}
+
+    <a href="/">← Run another scan</a>
+  </div>
+</body>
+</html>
