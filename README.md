@@ -22,6 +22,14 @@ findings in another. This tool aggregates all three into one score and
 tells you **which layer to fix first**, rather than three separate,
 disconnected reports.
 
+## Contents
+
+- [`docs/01-setup.md`](./docs/01-setup.md) — Installation and usage
+- [`docs/02-os-hardening.md`](./docs/02-os-hardening.md) — OS hardening module results
+- [`docs/03-network-scan.md`](./docs/03-network-scan.md) — Network vulnerability scan against Metasploitable 2
+- [`docs/04-composite-scan.md`](./docs/04-composite-scan.md) — Full composite scan results and scoring breakdown
+- [`docs/05-flask-ui.md`](./docs/05-flask-ui.md) — Flask web UI walkthrough
+
 ## Architecture
 
 ```
