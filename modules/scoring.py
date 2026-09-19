@@ -8,6 +8,11 @@ recommendations prioritized by severity across all layers.
 This module is the core contribution of the framework: rather than
 treating each security layer in isolation, it aggregates them into one
 risk picture and tells the user which layer to fix first.
+
+R1 FIX (Phase 2): Network findings do not carry a "passed" key. The
+original code used finding.get("passed", True) which silently excluded
+ALL network findings from recommendations. Fixed to correctly detect
+network-style findings by severity presence.
 """
 
 # Default layer weights — how much each layer contributes to the
@@ -20,6 +25,28 @@ DEFAULT_WEIGHTS = {
 }
 
 SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+
+
+def _is_failed_finding(finding):
+    """
+    Determine whether a finding represents a failure/flagged condition.
+
+    Handles two finding formats:
+    - os_hardening / webapp style: {"passed": bool, "severity": ...}
+    - network style: no "passed" key, severity non-None signals a flagged finding
+
+    NOT_APPLICABLE findings (severity=None, no passed key, or passed=True
+    with special status) are correctly excluded.
+    """
+    passed_val = finding.get("passed", None)
+    severity = finding.get("severity")
+    # Explicit False: os_hardening/webapp FAIL
+    if passed_val is False:
+        return True
+    # No passed key + severity present: network-style flagged finding
+    if passed_val is None and severity is not None:
+        return True
+    return False
 
 
 def compute_composite(layer_results, weights=None):
@@ -58,15 +85,14 @@ def compute_composite(layer_results, weights=None):
     weakest_layer = min(layer_summary, key=lambda l: layer_summary[l]["score"])
 
     # Build a single ranked recommendation list across all layers,
-    # sorted by severity (critical first) regardless of which layer
-    # the finding came from.
+    # sorted by severity (critical first) regardless of which layer.
     all_recommendations = []
     for layer, result in present_layers.items():
         for finding in result.get("findings", []):
-            if not finding.get("passed", True):
+            if _is_failed_finding(finding):
                 all_recommendations.append({
                     "layer": layer,
-                    "severity": finding.get("severity", "low"),
+                    "severity": finding.get("severity") or "low",
                     "description": finding.get("description")
                         or finding.get("note")
                         or finding.get("id"),
