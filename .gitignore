@@ -4,3 +4,4 @@ __pycache__/
 reports/
 *.json
 !data/vuln_severity.json
+research.db
