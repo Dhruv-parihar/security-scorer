@@ -132,3 +132,6 @@ a {
 .watermark a:hover {
   opacity: 1;
 }
+
+.na { background: rgba(148, 163, 184, 0.08); }
+.na td { color: #6b7280; }

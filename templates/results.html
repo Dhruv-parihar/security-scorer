@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Scan Results</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -9,9 +10,27 @@
   <div class="container">
     <h1>Scan Results</h1>
 
+    {% if auth_blocks %}
+      <div class="errors" style="border-color:#e74c3c;">
+        <strong>🔒 Authorization Required</strong>
+        {% for b in auth_blocks %}<p>{{ b }}</p>{% endfor %}
+        <p style="color:#9ca3af;font-size:0.9rem;">
+          Register the target on the <a href="/">main page</a> with a valid
+          authorization status before scanning.
+        </p>
+      </div>
+    {% endif %}
+
     {% if errors %}
       <div class="errors">
         {% for e in errors %}<p>⚠ {{ e }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    {% if assessment_id %}
+      <div style="background:#1a1d24;border:1px solid #2d3139;border-radius:6px;padding:0.8rem 1rem;margin-bottom:1.5rem;font-size:0.85rem;color:#9ca3af;">
+        ✓ Assessment persisted to research database &mdash;
+        <code style="color:#4ade80;">{{ assessment_id[:8] }}...</code>
       </div>
     {% endif %}
 
@@ -48,13 +67,19 @@
 
     <h2>Detailed Findings</h2>
     {% for layer, result in layer_results.items() %}
-      <h3>{{ layer }} — {{ result.score }}/100</h3>
+      <h3>{{ layer }} — {{ result.score }}/100
+        {% if result.get('not_applicable_checks') %}
+          <span style="font-size:0.75rem;color:#9ca3af;font-weight:normal;">
+            ({{ result.not_applicable_checks }} check(s) not applicable to this OS)
+          </span>
+        {% endif %}
+      </h3>
       <table>
         <tr><th>Status</th><th>Severity</th><th>Detail</th></tr>
         {% for f in result.findings %}
-        <tr class="{{ 'pass' if f.passed else 'fail' }}">
-          <td>{{ "PASS" if f.passed else "FAIL" }}</td>
-          <td>{{ f.severity }}</td>
+        <tr class="{{ 'pass' if f.get('passed') else ('na' if f.get('status') == 'NOT_APPLICABLE' else 'fail') }}">
+          <td>{{ f.get('status') or ('PASS' if f.get('passed') else 'FAIL') }}</td>
+          <td>{{ f.severity or '—' }}</td>
           <td>{{ f.description or f.note or f.id }}</td>
         </tr>
         {% endfor %}
@@ -63,6 +88,7 @@
 
     <a href="/">← Run another scan</a>
   </div>
+
   <div class="watermark">
     by Dhruv Parihar<br>
     <a href="https://github.com/Dhruv-parihar" target="_blank">github.com/Dhruv-parihar</a>

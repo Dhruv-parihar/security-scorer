@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Security Scoring Framework</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -9,6 +10,12 @@
   <div class="container">
     <h1>Security Scoring Framework</h1>
     <p class="subtitle">Composite OS, Network, and Web Application risk scoring</p>
+
+    {% if errors %}
+      <div class="errors">
+        {% for e in errors %}<p>⚠ {{ e }}</p>{% endfor %}
+      </div>
+    {% endif %}
 
     <form action="/scan" method="post">
       <fieldset>
@@ -23,13 +30,13 @@
           <input type="checkbox" name="layers" value="network">
           Network Vulnerability Scan
         </label>
-        <input type="text" name="network_target" placeholder="Target IP, e.g. 192.168.56.102">
+        <input type="text" name="network_target" placeholder="Target IP — must be registered below">
 
         <label class="checkbox-row">
           <input type="checkbox" name="layers" value="webapp">
           Web Application Scan
         </label>
-        <input type="text" name="webapp_target" placeholder="Target URL, e.g. http://192.168.56.102/dvwa/vulnerabilities/sqli/?id=1">
+        <input type="text" name="webapp_target" placeholder="Target URL — must be registered below">
       </fieldset>
 
       <button type="submit">Run Scan</button>
@@ -37,8 +44,57 @@
 
     <p class="disclaimer">
       Only scan systems you own or have explicit permission to test.
+      Active scans require a registered authorized target (below).
     </p>
+
+    <hr style="border-color:#2d3139; margin: 2rem 0;">
+
+    <h2>Authorized Targets</h2>
+    {% if targets %}
+    <table>
+      <tr><th>Alias</th><th>Type</th><th>Authorization</th><th>OS</th></tr>
+      {% for t in targets %}
+      <tr>
+        <td>{{ t['target_alias'] }}</td>
+        <td>{{ t['target_type'] }}</td>
+        <td>{{ t['authorization_status'] }}</td>
+        <td>{{ t['os_family'] or '—' }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+    {% else %}
+    <p style="color:#9ca3af;">No targets registered yet. Add one below before scanning.</p>
+    {% endif %}
+
+    <h3 style="margin-top:1.5rem;">Register a New Authorized Target</h3>
+    <form action="/targets/add" method="post">
+      <input type="text" name="alias" placeholder="Alias (IP, hostname, or URL used in scan)" required>
+      <select name="target_type" style="padding:0.6rem;background:#1a1d24;border:1px solid #2d3139;color:#e4e6eb;border-radius:6px;margin-bottom:0.8rem;width:100%;">
+        <option value="lab_vm">lab_vm</option>
+        <option value="server">server</option>
+        <option value="workstation">workstation</option>
+        <option value="web_app">web_app</option>
+        <option value="network_device">network_device</option>
+      </select>
+      <select name="environment" style="padding:0.6rem;background:#1a1d24;border:1px solid #2d3139;color:#e4e6eb;border-radius:6px;margin-bottom:0.8rem;width:100%;">
+        <option value="lab">lab</option>
+        <option value="owned">owned</option>
+        <option value="authorized">authorized</option>
+        <option value="consented">consented</option>
+      </select>
+      <select name="authorization_status" style="padding:0.6rem;background:#1a1d24;border:1px solid #2d3139;color:#e4e6eb;border-radius:6px;margin-bottom:0.8rem;width:100%;">
+        <option value="LAB">LAB</option>
+        <option value="OWNED">OWNED</option>
+        <option value="EXPLICITLY_AUTHORIZED">EXPLICITLY_AUTHORIZED</option>
+        <option value="CONSENTED_RESEARCH">CONSENTED_RESEARCH</option>
+      </select>
+      <input type="text" name="os_family" placeholder="OS family (linux/windows/macos/unknown)">
+      <input type="text" name="os_name" placeholder="OS name (optional, e.g. Ubuntu 8.04)">
+      <input type="text" name="authorization_ref" placeholder="Authorization reference / ticket (optional)">
+      <button type="submit" style="margin-top:0.5rem;">Add Target</button>
+    </form>
   </div>
+
   <div class="watermark">
     by Dhruv Parihar<br>
     <a href="https://github.com/Dhruv-parihar" target="_blank">github.com/Dhruv-parihar</a>

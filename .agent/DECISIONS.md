@@ -104,3 +104,26 @@ preserved. FAIL findings get pending remediation records automatically.
 is preserved for CLI/Flask backward compatibility. os_hardening.py adds
 os_family, applicable_checks, not_applicable_checks to result dict (additive,
 not breaking). network_scan.py and webapp_scan.py unchanged.
+
+## D-013 — Phase 3: main.py wired to authorization + DB (option 5 for target mgmt)
+**Date:** 2026-09-18
+**Decision:** main.py now requires authorization before network/web scans.
+Added option 5 (manage authorized targets) to CLI. DB persistence via
+_persist() which swallows non-critical DB errors so CLI output is never
+broken by DB failure. OS hardening proceeds without authorization check
+(local only). debug=False in app.py.
+**Tests:** TestCLIPath (8 tests), TestFlaskPath (9 tests).
+
+## D-014 — Phase 3: app.py wired to authorization + DB + target management
+**Date:** 2026-09-18
+**Decision:** Flask /scan route checks authorization before calling any active
+scanner. auth_blocks list returned to template. /targets/add route for
+registering new authorized targets. assessment_id shown in results when
+persistence succeeds. debug=False.
+**Tests:** TestFlaskPath (9 tests).
+
+## D-015 — debug=False in production app.py
+**Date:** 2026-09-18
+**Decision:** app.py changed from debug=True to debug=False, host restricted
+to 127.0.0.1. Werkzeug debugger was a remote code execution risk.
+**Rationale:** R9 (security issue in kit itself) from Phase 0 audit.
