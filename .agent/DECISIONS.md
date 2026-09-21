@@ -127,3 +127,27 @@ persistence succeeds. debug=False.
 **Decision:** app.py changed from debug=True to debug=False, host restricted
 to 127.0.0.1. Werkzeug debugger was a remote code execution risk.
 **Rationale:** R9 (security issue in kit itself) from Phase 0 audit.
+
+## D-016 — Phase 4A: analysis/scoring_sensitivity.py — mathematical sensitivity only
+**Date:** 2026-09-18
+**Decision:** Sensitivity analysis evaluates mathematical/model robustness
+across predefined weight scenarios. Does NOT claim any alternative weighting
+is empirically superior. Empirical limitation statement always included in
+output. Analysis never creates assessment records in the DB.
+**Tests:** TestResearchSemantics.test_no_fabricated_assessment_data,
+test_empty_db_returns_empirical_limitation,
+test_empirical_limitation_always_present (3 tests).
+
+## D-017 — Phase 4A: NOT_APPLICABLE means absent from layer_scores, not zero
+**Date:** 2026-09-18
+**Decision:** compute_weighted_composite() excludes absent layers via
+renormalization. An absent layer (NOT_APPLICABLE or not assessed) must
+not be treated as a zero score. test_unavailable_layer_not_silently_zero
+confirms this property is enforced.
+
+## D-018 — Phase 4A: Sweep scenarios cover ±SWEEP_STEP increments per layer
+**Date:** 2026-09-18
+**Decision:** _generate_sweep_scenarios() varies each layer's weight from
+0.05 to 0.90 in 0.05 increments, distributing remainder equally across
+the other two layers. Weights always sum to 1.0. 54 sweep scenarios total
+(18 per layer × 3 layers). All validated by test_sweep_scenarios_generated.
