@@ -151,3 +151,26 @@ confirms this property is enforced.
 0.05 to 0.90 in 0.05 increments, distributing remainder equally across
 the other two layers. Weights always sum to 1.0. 54 sweep scenarios total
 (18 per layer × 3 layers). All validated by test_sweep_scenarios_generated.
+
+## D-019 — Phase 4B: Denominator definition — PASS+FAIL only
+**Date:** 2026-09-18
+**Decision:** Prevalence denominator = assessments where check produced
+PASS or FAIL. NOT_APPLICABLE, NOT_TESTED, ERROR, UNKNOWN excluded.
+This is enforced in SQL (WHERE status IN ('PASS','FAIL')) and verified
+by 4 tests: test_not_applicable_excluded_from_denominator,
+test_not_tested_excluded_from_denominator, test_error_excluded_from_denominator,
+test_not_applicable_missing_absent_from_prevalence.
+
+## D-020 — Phase 4B: Co-occurrence uses unique assessment-level FAIL presence
+**Date:** 2026-09-18
+**Decision:** Co-occurrence counts unique assessment-level FAIL presence,
+not finding record count. Multiple FAIL records for the same check in the
+same assessment count as 1. Enforced by DISTINCT in SQL grouping and
+verified by test_unique_assessment_counting.
+No causal language. caution_note field present on every co-occurrence result.
+
+## D-021 — Phase 4B: Small sample threshold = 10; preliminary flag always set
+**Date:** 2026-09-18
+**Decision:** SMALL_SAMPLE_THRESHOLD = 10. Any prevalence result where
+n_applicable < 10 is flagged preliminary=True. empirical_limitation field
+always present in run_full_analysis() output regardless of dataset size.
