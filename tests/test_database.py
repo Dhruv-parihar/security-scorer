@@ -18,10 +18,12 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.schema import (
     initialize, seed_taxonomy, get_current_version,
-    FINDING_STATUSES, FINDING_LAYERS, AUTH_STATUSES, SCHEMA_VERSION
+    FINDING_STATUSES, FINDING_LAYERS, AUTH_STATUSES, SCHEMA_VERSION,
+    MIGRATIONS, migrate,
 )
 from db.repository import (
-    create_target, get_target, list_targets,
+    create_target, get_target, list_targets, add_target_identifier,
+    list_target_identifiers,
     create_assessment, get_assessment, close_assessment,
     create_finding, get_findings, get_findings_by_status,
     get_finding_prevalence,
@@ -67,7 +69,7 @@ def assessment_id(db, target_id):
 class TestSchemaCreation:
     def test_schema_version_is_current(self, db):
         conn, version = db
-        assert version == SCHEMA_VERSION - 1  # 0-indexed migrations
+        assert version == SCHEMA_VERSION
 
     def test_all_tables_exist(self, db):
         conn, _ = db
@@ -75,7 +77,7 @@ class TestSchemaCreation:
             "SELECT name FROM sqlite_master WHERE type='table'"
         ).fetchall()}
         expected = {
-            "schema_migrations", "taxonomy", "target", "assessment",
+            "schema_migrations", "taxonomy", "target", "target_identifier", "assessment",
             "finding", "score_snapshot", "remediation"
         }
         assert expected.issubset(tables), f"Missing tables: {expected - tables}"
@@ -115,6 +117,62 @@ class TestSchemaCreation:
         assert "idx_assessment_target" in indexes
 
 
+class TestTargetIdentifierMigration:
+    @staticmethod
+    def _v2_connection():
+        """Create a database that represents the schema before migration 3."""
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        conn.execute("PRAGMA foreign_keys = ON")
+        for version, sql in enumerate(MIGRATIONS[:2]):
+            conn.executescript(sql)
+            conn.execute(
+                "INSERT INTO schema_migrations(version, applied_at, description) "
+                "VALUES (?, '2026-10-05T00:00:00+00:00', ?)",
+                (version, f"migration_{version}"),
+            )
+        conn.commit()
+        return conn
+
+    def test_unique_legacy_alias_is_backfilled(self):
+        conn = self._v2_connection()
+        try:
+            conn.execute("""
+                INSERT INTO target (
+                    target_id, target_alias, target_type, environment,
+                    authorization_status, created_at
+                ) VALUES ('legacy-target', 'legacy-lab', 'lab_vm', 'lab', 'LAB', 'now')
+            """)
+            conn.commit()
+            assert migrate(conn) == 3
+            row = conn.execute(
+                "SELECT target_id FROM target_identifier WHERE identifier = ?",
+                ("legacy-lab",),
+            ).fetchone()
+            assert row["target_id"] == "legacy-target"
+        finally:
+            conn.close()
+
+    def test_ambiguous_legacy_alias_is_not_backfilled(self):
+        conn = self._v2_connection()
+        try:
+            for target_id in ("legacy-a", "legacy-b"):
+                conn.execute("""
+                    INSERT INTO target (
+                        target_id, target_alias, target_type, environment,
+                        authorization_status, created_at
+                    ) VALUES (?, 'shared-legacy-alias', 'lab_vm', 'lab', 'LAB', 'now')
+                """, (target_id,))
+            conn.commit()
+            assert migrate(conn) == 3
+            assert conn.execute(
+                "SELECT 1 FROM target_identifier WHERE identifier = ?",
+                ("shared-legacy-alias",),
+            ).fetchone() is None
+        finally:
+            conn.close()
+
+
 # ── Target ────────────────────────────────────────────────────────────────────
 
 class TestTarget:
@@ -137,6 +195,26 @@ class TestTarget:
         create_target(conn, "t2", "server", "owned", "OWNED")
         targets = list_targets(conn)
         assert len(targets) >= 2
+
+    def test_primary_alias_is_registered_as_an_identifier(self, db, target_id):
+        conn, _ = db
+        identifiers = list_target_identifiers(conn, target_id)
+        assert [row["identifier"] for row in identifiers] == ["test-target-01"]
+
+    def test_add_explicit_target_identifier(self, db, target_id):
+        conn, _ = db
+        add_target_identifier(conn, target_id, "https://lab.example.test/app")
+        identifiers = list_target_identifiers(conn, target_id)
+        assert {row["identifier"] for row in identifiers} == {
+            "test-target-01", "https://lab.example.test/app"
+        }
+
+    def test_duplicate_primary_identifier_is_rejected_before_target_creation(self, db):
+        conn, _ = db
+        create_target(conn, "unique-lab", "lab_vm", "lab", "LAB")
+        with pytest.raises(ValueError, match="already bound"):
+            create_target(conn, "unique-lab", "server", "owned", "OWNED")
+        assert len(list_targets(conn)) == 1
 
     def test_invalid_authorization_status_rejected(self, db):
         conn, _ = db
@@ -164,7 +242,7 @@ class TestAssessment:
         assert a is not None
         assert a["scope"] == "ALL"
         assert a["tool_version"] == "1.0.0"
-        assert a["schema_version"] == 1
+        assert a["schema_version"] == SCHEMA_VERSION
 
     def test_invalid_target_id_rejected(self, db):
         conn, _ = db
@@ -273,6 +351,15 @@ class TestNotApplicableSemantics:
                 severity="medium"
             )
 
+    @pytest.mark.parametrize("status", ("ERROR", "UNKNOWN"))
+    def test_unevaluated_status_severity_must_be_none(self, db, assessment_id, status):
+        conn, _ = db
+        with pytest.raises(ValueError):
+            create_finding(
+                conn, assessment_id, "OS", f"{status}_check",
+                status, "Unevaluated check", severity="medium"
+            )
+
     def test_not_applicable_excluded_from_prevalence(self, db, assessment_id):
         conn, _ = db
         create_finding(conn, assessment_id, "OS", "ssh_root",
@@ -336,6 +423,7 @@ class TestScoreSnapshot:
         assert snaps[0]["web_score"] == 50
         assert snaps[0]["weakest_layer"] == "network"
         assert snaps[0]["scoring_model_id"] == "weighted_composite_v1"
+        assert snaps[0]["snapshot_sequence"] == 1
 
     def test_multiple_snapshots_different_models(self, db, assessment_id):
         conn, _ = db
@@ -352,6 +440,7 @@ class TestScoreSnapshot:
         models = {s["scoring_model_id"] for s in snaps}
         assert "weighted_composite_v1" in models
         assert "equal_weight_v1" in models
+        assert [s["snapshot_sequence"] for s in snaps] == [1, 2]
 
 
 # ── Remediation Longitudinal ──────────────────────────────────────────────────

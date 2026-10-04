@@ -13,14 +13,14 @@ Design principles:
 - Foreign keys enforced. Indexes on common research query paths.
 - Schema versioned via migrations table. Safe to re-run (idempotent).
 
-Schema version: 1
+Schema version: 3
 """
 
 import sqlite3
 import os
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 3
 
 # Finding status values — must remain consistent with FINDING_STATUSES
 FINDING_STATUSES = ("PASS", "FAIL", "NOT_APPLICABLE", "NOT_TESTED", "ERROR", "UNKNOWN")
@@ -173,6 +173,39 @@ MIGRATIONS = [
     CREATE INDEX IF NOT EXISTS idx_remediation_finding ON remediation(finding_id);
     CREATE INDEX IF NOT EXISTS idx_target_auth         ON target(authorization_status);
     """,
+    # Migration 1 → 2: make snapshot recency deterministic when timestamps tie.
+    """
+    ALTER TABLE score_snapshot ADD COLUMN snapshot_sequence INTEGER NOT NULL DEFAULT 0;
+    UPDATE score_snapshot SET snapshot_sequence = rowid WHERE snapshot_sequence = 0;
+    CREATE INDEX IF NOT EXISTS idx_score_assessment_sequence
+        ON score_snapshot(assessment_id, calculated_at, snapshot_sequence);
+    """,
+    # Migration 2 → 3: explicitly map multiple authorized scan identifiers to
+    # one research target. This permits a registered IP and URL to represent
+    # one target without inferring a relationship from their text values.
+    """
+    CREATE TABLE IF NOT EXISTS target_identifier (
+        identifier      TEXT PRIMARY KEY COLLATE NOCASE,
+        target_id       TEXT NOT NULL REFERENCES target(target_id) ON DELETE RESTRICT,
+        created_at      TEXT NOT NULL,
+        notes           TEXT
+    );
+
+    -- Backfill only unique legacy aliases. Ambiguous aliases deliberately do
+    -- not receive a mapping, so authorization remains blocked until reviewed.
+    INSERT OR IGNORE INTO target_identifier (identifier, target_id, created_at, notes)
+    SELECT t.target_alias, t.target_id, t.created_at,
+           'Migrated primary target alias'
+    FROM target AS t
+    WHERE NOT EXISTS (
+        SELECT 1 FROM target AS other
+        WHERE other.target_id <> t.target_id
+          AND LOWER(other.target_alias) = LOWER(t.target_alias)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_target_identifier_target
+        ON target_identifier(target_id);
+    """,
 ]
 
 
@@ -191,7 +224,8 @@ def get_connection(db_path=None):
     return conn
 
 
-def get_current_version(conn):
+def _current_migration_index(conn):
+    """Return the zero-based index of the latest applied migration, or -1."""
     try:
         row = conn.execute(
             "SELECT MAX(version) as v FROM schema_migrations"
@@ -201,9 +235,14 @@ def get_current_version(conn):
         return -1
 
 
+def get_current_version(conn):
+    """Return the human-facing schema version (one-based, matching SCHEMA_VERSION)."""
+    return _current_migration_index(conn) + 1
+
+
 def migrate(conn):
     """Apply pending migrations idempotently. Returns new schema version."""
-    current = get_current_version(conn)
+    current = _current_migration_index(conn)
     for i, sql in enumerate(MIGRATIONS):
         if i > current:
             conn.executescript(sql)

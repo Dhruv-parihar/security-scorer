@@ -20,7 +20,7 @@ IMPORTANT RESEARCH RULE:
 
   Do not interpret sensitivity results as weight recommendations.
 
-Analysis version: 1.0.0
+Analysis version: 1.1.0
 
 Usage:
   python3 -m analysis.scoring_sensitivity [--db PATH] [--json]
@@ -33,22 +33,21 @@ import json
 import sys
 import os
 import itertools
+import math
 from datetime import datetime, timezone
 from typing import Optional
+from analysis.common import LATEST_SNAPSHOTS, open_readonly
+from modules.scoring_config import DEFAULT_WEIGHTS, SCORING_MODEL_VERSION
 
 # ── Constants ─────────────────────────────────────────────────────────────────
 
-ANALYSIS_VERSION = "1.0.0"
+ANALYSIS_VERSION = "1.1.0"
 ANALYSIS_ID = "scoring_sensitivity_v1"
 
 KNOWN_LAYERS = ("os_hardening", "network", "webapp")
 
-# Baseline weights — must match production default in modules/scoring.py
-BASELINE_WEIGHTS = {
-    "os_hardening": 0.30,
-    "network":      0.35,
-    "webapp":       0.35,
-}
+# Baseline weights come from the production scoring configuration.
+BASELINE_WEIGHTS = dict(DEFAULT_WEIGHTS)
 
 # Step size for one-layer sensitivity sweep
 SWEEP_STEP = 0.05
@@ -151,6 +150,13 @@ def compute_weighted_composite(
     - NOT_APPLICABLE layers must NOT be in layer_scores at all.
     - Unavailable layers are not silently treated as zero score.
     """
+    if any(not isinstance(weight, (int, float)) or not math.isfinite(weight) or weight < 0
+           for weight in weights.values()):
+        raise ValueError("Weights must be finite nonnegative numbers")
+    if any(not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 100
+           for score in layer_scores.values()):
+        raise ValueError("Layer scores must be finite numbers in [0, 100]")
+
     contributing = {
         layer: (score, weights.get(layer, 0.0))
         for layer, score in layer_scores.items()
@@ -208,7 +214,7 @@ def load_assessment_layer_scores(conn) -> list[dict]:
     Layers with NULL score in the snapshot are excluded from layer_scores
     (they were not assessed, not NOT_APPLICABLE zero).
     """
-    rows = conn.execute("""
+    rows = conn.execute(f"""
         SELECT
             ss.snapshot_id,
             ss.assessment_id,
@@ -224,10 +230,10 @@ def load_assessment_layer_scores(conn) -> list[dict]:
             a.assessment_date,
             a.target_id,
             t.target_alias
-        FROM score_snapshot ss
+        FROM ({LATEST_SNAPSHOTS}) ss
         JOIN assessment a ON ss.assessment_id = a.assessment_id
         JOIN target t ON a.target_id = t.target_id
-        ORDER BY a.assessment_date, ss.calculated_at
+        ORDER BY a.assessment_date, ss.calculated_at, ss.snapshot_id
     """).fetchall()
 
     results = []
@@ -423,7 +429,7 @@ def _robustness_ordering(assessments, scenarios, all_results) -> dict:
     sensitive = 0
     pair_details = []
 
-    for aid1, aid2 in pairs[:10]:  # cap at 10 pairs for readability
+    for aid1, aid2 in pairs:
         scenario_results = {}
         for r in all_results:
             if r["assessment_id"] in (aid1, aid2) and r["scenario_id"] in {
@@ -600,8 +606,7 @@ def main():
         sys.exit(1)
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from db.schema import get_connection
-    conn = get_connection(db_path)
+    conn = open_readonly(db_path)
 
     scenarios = None
     if args.baseline_only:

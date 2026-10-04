@@ -247,7 +247,7 @@ def run():
 
     applicable = [f for f in findings if f["status"] in ("PASS", "FAIL")]
     passed_count = sum(1 for f in applicable if f["status"] == "PASS")
-    score = round((passed_count / len(applicable)) * 100) if applicable else 0
+    score = round((passed_count / len(applicable)) * 100) if applicable else None
 
     return {
         "layer": "os_hardening",

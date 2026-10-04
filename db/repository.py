@@ -10,7 +10,7 @@ Design: thin repository pattern. No business logic here.
 
 import uuid
 from datetime import datetime, timezone
-from db.schema import get_connection, FINDING_STATUSES, FINDING_LAYERS, AUTH_STATUSES
+from db.schema import get_connection, FINDING_STATUSES, FINDING_LAYERS, AUTH_STATUSES, SCHEMA_VERSION
 
 
 def _now():
@@ -33,7 +33,20 @@ def create_target(conn, alias, target_type, environment, authorization_status,
     """
     assert authorization_status in AUTH_STATUSES, \
         f"Invalid authorization_status: {authorization_status}"
+    alias = str(alias).strip()
+    if not alias:
+        raise ValueError("Target alias must not be empty")
+    existing = conn.execute("""
+        SELECT target_id FROM target_identifier
+        WHERE identifier = ? COLLATE NOCASE
+    """, (alias,)).fetchone()
+    if existing is not None:
+        raise ValueError(
+            f"Target alias '{alias}' is already bound to another target; "
+            "use an explicit additional identifier or review the existing target."
+        )
     target_id = _uuid()
+    created_at = _now()
     conn.execute("""
         INSERT INTO target (
             target_id, target_alias, target_type, environment,
@@ -44,7 +57,13 @@ def create_target(conn, alias, target_type, environment, authorization_status,
     """, (target_id, alias, target_type, environment,
           os_family, os_name, os_version, deployment_type,
           technology_notes, authorization_status, authorization_ref,
-          _now(), notes))
+          created_at, notes))
+    # The primary alias is also an explicit authorized scan identifier. Extra
+    # identifiers are added with add_target_identifier(); none are inferred.
+    conn.execute("""
+        INSERT INTO target_identifier (identifier, target_id, created_at, notes)
+        VALUES (?, ?, ?, ?)
+    """, (alias, target_id, created_at, "Primary target alias"))
     conn.commit()
     return target_id
 
@@ -59,11 +78,55 @@ def list_targets(conn):
     return conn.execute("SELECT * FROM target ORDER BY created_at").fetchall()
 
 
+def add_target_identifier(conn, target_id, identifier, notes=None):
+    """Explicitly bind an authorized scan identifier to an existing target.
+
+    This is intentionally a data-management operation, not identifier
+    normalization or hostname/IP inference. It permits, for example, a lab IP
+    and its authorized web URL to resolve to one target record.
+    """
+    identifier = str(identifier).strip() if identifier is not None else ""
+    if not identifier:
+        raise ValueError("Target identifier must not be empty")
+    if get_target(conn, target_id) is None:
+        raise ValueError(f"Target {target_id} not found in database")
+    existing = conn.execute("""
+        SELECT target_id FROM target_identifier
+        WHERE identifier = ? COLLATE NOCASE
+    """, (identifier,)).fetchone()
+    if existing is not None:
+        if existing["target_id"] == target_id:
+            return False
+        raise ValueError(
+            f"Identifier '{identifier}' is already bound to another target."
+        )
+    conn.execute("""
+        INSERT INTO target_identifier (identifier, target_id, created_at, notes)
+        VALUES (?, ?, ?, ?)
+    """, (identifier, target_id, _now(), notes))
+    conn.commit()
+    return True
+
+
+def list_target_identifiers(conn, target_id=None):
+    """Return explicit scan identifiers, optionally for one target."""
+    if target_id:
+        return conn.execute("""
+            SELECT * FROM target_identifier
+            WHERE target_id = ?
+            ORDER BY created_at, identifier
+        """, (target_id,)).fetchall()
+    return conn.execute("""
+        SELECT * FROM target_identifier
+        ORDER BY target_id, created_at, identifier
+    """).fetchall()
+
+
 # ── ASSESSMENT ───────────────────────────────────────────────────────────────
 
 def create_assessment(conn, target_id, scope, authorization_status,
                       tool_version="1.0.0", methodology_version="1.0",
-                      schema_version=1, assessor=None, notes=None,
+                      schema_version=SCHEMA_VERSION, assessor=None, notes=None,
                       start_time=None, end_time=None):
     """
     Create a new assessment record for a target.
@@ -126,11 +189,11 @@ def create_finding(conn, assessment_id, layer, check_id, status, description,
     CRITICAL: NOT_APPLICABLE must be passed explicitly — callers must
     never convert NOT_APPLICABLE to PASS or FAIL before calling this.
 
-    severity must be None when status is NOT_APPLICABLE or NOT_TESTED.
+    Severity must be None whenever the check was not evaluable.
     """
     assert status in FINDING_STATUSES, f"Invalid status: {status}"
     assert layer in FINDING_LAYERS, f"Invalid layer: {layer}"
-    if status in ("NOT_APPLICABLE", "NOT_TESTED") and severity is not None:
+    if status in ("NOT_APPLICABLE", "NOT_TESTED", "ERROR", "UNKNOWN") and severity is not None:
         raise ValueError(
             f"severity must be None when status is {status}, got {severity!r}"
         )
@@ -213,13 +276,17 @@ def create_score_snapshot(conn, assessment_id, composite_result,
     import json
     snapshot_id = _uuid()
     layers = composite_result.get("layers", {})
+    snapshot_sequence = conn.execute("""
+        SELECT COALESCE(MAX(snapshot_sequence), 0) + 1
+        FROM score_snapshot WHERE assessment_id=?
+    """, (assessment_id,)).fetchone()[0]
     conn.execute("""
         INSERT INTO score_snapshot (
             snapshot_id, assessment_id, scoring_model_id, scoring_model_ver,
             os_score, network_score, web_score, composite_score,
             weight_os, weight_network, weight_web, weakest_layer,
-            model_metadata, calculated_at, notes
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            model_metadata, calculated_at, notes, snapshot_sequence
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, (snapshot_id, assessment_id, scoring_model_id, scoring_model_ver,
           layers.get("os_hardening", {}).get("score"),
           layers.get("network", {}).get("score"),
@@ -228,14 +295,14 @@ def create_score_snapshot(conn, assessment_id, composite_result,
           weight_os, weight_network, weight_web,
           composite_result.get("weakest_layer"),
           json.dumps(model_metadata) if model_metadata else None,
-          _now(), notes))
+          _now(), notes, snapshot_sequence))
     conn.commit()
     return snapshot_id
 
 
 def get_score_snapshots(conn, assessment_id):
     return conn.execute(
-        "SELECT * FROM score_snapshot WHERE assessment_id = ? ORDER BY calculated_at",
+        "SELECT * FROM score_snapshot WHERE assessment_id = ? ORDER BY calculated_at, snapshot_sequence",
         (assessment_id,)
     ).fetchall()
 

@@ -93,6 +93,25 @@
       <input type="text" name="authorization_ref" placeholder="Authorization reference / ticket (optional)">
       <button type="submit" style="margin-top:0.5rem;">Add Target</button>
     </form>
+
+    {% if targets %}
+    <h3 style="margin-top:1.5rem;">Link an Additional Authorized Scan Identifier</h3>
+    <p style="color:#9ca3af;font-size:0.9rem;">
+      Use this only when an IP, hostname, or URL is explicitly authorized for
+      the selected target. This allows separate network and web identifiers to
+      share one research target without inferring a relationship.
+    </p>
+    <form action="/targets/identifiers/add" method="post">
+      <select name="target_id" required style="padding:0.6rem;background:#1a1d24;border:1px solid #2d3139;color:#e4e6eb;border-radius:6px;margin-bottom:0.8rem;width:100%;">
+        {% for t in targets %}
+        <option value="{{ t['target_id'] }}">{{ t['target_alias'] }} — {{ t['target_id'] }}</option>
+        {% endfor %}
+      </select>
+      <input type="text" name="identifier" placeholder="Additional IP, hostname, or URL used in a scan" required>
+      <input type="text" name="identifier_notes" placeholder="Optional authorization or scope note">
+      <button type="submit" style="margin-top:0.5rem;">Link Identifier</button>
+    </form>
+    {% endif %}
   </div>
 
   <div class="watermark">

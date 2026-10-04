@@ -1,6 +1,6 @@
 # Data Dictionary — Security Scoring Framework Research Database
-**Schema version:** 1
-**Last updated:** 2026-09-18
+**Schema version:** 3
+**Last updated:** 2026-10-05
 
 ---
 
@@ -19,10 +19,11 @@
    If a check was not run, the finding status is NOT_TESTED. Absence of
    evidence is not evidence of absence.
 
-4. **Target identity can be anonymized.**
-   Targets are identified by UUID. The alias field is a human-readable label
-   chosen by the researcher. IP addresses, hostnames, and credentials are not
-   stored in the research database.
+4. **Target identity and scan identifiers are distinct.**
+   Targets are identified by UUID and have a researcher-assigned alias.
+   Explicit scan identifiers may be stored locally only when needed to enforce
+   authorization lookups; they must not be published and must be pseudonymized
+   or removed from released research data. Credentials are never stored.
 
 ---
 
@@ -33,7 +34,7 @@ Tracks applied database migrations. One row per migration.
 
 | Column | Type | Description |
 |--------|------|-------------|
-| version | INTEGER PK | Migration index (0-based) |
+| version | INTEGER PK | Internal migration index (0-based); assessments store the one-based schema version |
 | applied_at | TEXT | ISO-8601 timestamp |
 | description | TEXT | Migration description |
 
@@ -59,7 +60,8 @@ UNNECESSARY_SERVICE, UNCATEGORIZED
 ---
 
 ### target
-Anonymized research target. No IP addresses, hostnames, or credentials stored.
+Logical research target. Its stable UUID, not a network identifier, anchors
+assessments and score snapshots.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -76,6 +78,25 @@ Anonymized research target. No IP addresses, hostnames, or credentials stored.
 | authorization_ref | TEXT | Reference to authorization document/ticket |
 | created_at | TEXT | ISO-8601 |
 | notes | TEXT | Free-text notes |
+
+---
+
+### target_identifier
+An explicit local mapping from a scan input (IP, hostname, or URL) to one
+target. It supports an authorized network identifier and web URL belonging to
+the same target without inferring that relationship from their text values.
+This table is sensitive local metadata and must be removed or pseudonymized
+before data release.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| identifier | TEXT PK, case-insensitive | Exact scan input; may map to only one target |
+| target_id | TEXT FK→target | Target explicitly authorized for the identifier |
+| created_at | TEXT | ISO-8601 mapping creation time |
+| notes | TEXT | Optional authorization/scope note |
+
+Legacy primary aliases are migrated only when unique. Duplicate legacy aliases
+remain unmapped and therefore cannot authorize scanning until reviewed.
 
 ---
 
@@ -112,7 +133,7 @@ One finding = one check result from one assessment.
 | check_version | TEXT | Version of detector/check logic |
 | taxonomy_id | INTEGER FK→taxonomy | Taxonomy category (nullable) |
 | status | TEXT | **PASS / FAIL / NOT_APPLICABLE / NOT_TESTED / ERROR / UNKNOWN** |
-| severity | TEXT | critical / high / medium / low / informational (NULL if NOT_APPLICABLE/NOT_TESTED) |
+| severity | TEXT | critical / high / medium / low / informational (NULL for unevaluated statuses) |
 | confidence | TEXT | HIGH / MEDIUM / LOW |
 | description | TEXT | Human-readable finding description |
 | evidence | TEXT | Raw evidence (string or JSON) |
@@ -155,6 +176,7 @@ Stored for reproducibility and model comparison.
 | model_metadata | TEXT | JSON: additional model parameters |
 | calculated_at | TEXT | ISO-8601 |
 | notes | TEXT | Free-text notes |
+| snapshot_sequence | INTEGER | Assessment-local insertion sequence; resolves timestamp ties deterministically |
 
 ---
 

@@ -174,3 +174,32 @@ No causal language. caution_note field present on every co-occurrence result.
 **Decision:** SMALL_SAMPLE_THRESHOLD = 10. Any prevalence result where
 n_applicable < 10 is flagged preliminary=True. empirical_limitation field
 always present in run_full_analysis() output regardless of dataset size.
+
+## D-022 — Continuation: composite assessments require one target identity
+**Date:** 2026-10-05
+**Decision:** Network and web scan results may be combined and persisted only
+when they resolve to the same target record. Local OS-hardening output may not
+be combined with remote network or web output unless an explicit target binding
+is supplied. On a mismatch, composite scoring and persistence are both blocked.
+**Rationale:** A score snapshot must remain attributable to one scoped target;
+combining observations from different target records would corrupt research
+provenance.
+**Tests:** test_same_remote_target_is_allowed,
+test_different_remote_targets_are_blocked,
+test_local_os_and_remote_target_are_blocked, and
+test_flask_blocks_cross_target_composite_persistence.
+
+## D-023 — Continuation: scan identifiers require explicit target mappings
+**Date:** 2026-10-05
+**Decision:** Schema version 3 adds `target_identifier`, a case-insensitive
+one-to-many mapping from a scan input to exactly one target. A target's primary
+alias is registered as its first identifier; extra IP, hostname, or URL values
+must be linked explicitly. Duplicate identifiers are rejected before a new
+target is created, and duplicate legacy aliases are deliberately left unmapped
+during migration.
+**Rationale:** Target-level composite protection is only usable when separately
+authorized network and web inputs can demonstrate one shared target without
+guessing from their textual form.
+**Tests:** database identifier creation and duplicate rejection, authorization
+resolution through a secondary identifier, Flask route wiring, and a persisted
+same-target IP-plus-URL composite.

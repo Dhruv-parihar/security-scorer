@@ -1,11 +1,13 @@
 # Database Schema Reference
-**Schema version:** 1
-**Last updated:** 2026-09-18
+**Schema version:** 3
+**Last updated:** 2026-10-05
 
 ## Entity-Relationship Summary
 
 ```
 target (1) ──────── (N) assessment
+   │
+   └─────────────── (N) target_identifier
                           │
               ┌───────────┤
               │           │
@@ -33,6 +35,11 @@ taxonomy ──── (N) finding
 4. `PRAGMA foreign_keys = ON` is set on every connection. All FK constraints
    are enforced at the SQLite level.
 
+5. An active scan input resolves through `target_identifier`, an explicit
+   case-insensitive mapping to one target. The system never infers that an IP,
+   hostname, and URL represent the same target. Identifier metadata is local
+   sensitive data and must be removed or pseudonymized before release.
+
 ## Migration Strategy
 
 - Migrations are numbered 0-based and applied in order.
@@ -48,5 +55,5 @@ taxonomy ──── (N) finding
 | `db/schema.py` | Schema DDL, migration engine, constants |
 | `db/repository.py` | All DB read/write operations |
 | `db/__init__.py` | Package exports |
-| `tests/test_database.py` | 38-test suite |
+| `tests/test_database.py` | Database and migration regression tests |
 | `research.db` | Live research database (gitignored) |

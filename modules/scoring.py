@@ -18,13 +18,8 @@ network-style findings by severity presence.
 # Default layer weights — how much each layer contributes to the
 # composite score. Adjust these based on the threat model you care
 # about (e.g. a public-facing web server might weight webapp higher).
-DEFAULT_WEIGHTS = {
-    "os_hardening": 0.3,
-    "network": 0.35,
-    "webapp": 0.35,
-}
-
-SEVERITY_RANK = {"critical": 0, "high": 1, "medium": 2, "low": 3}
+import math
+from modules.scoring_config import DEFAULT_WEIGHTS, SEVERITY_RANK, SCORING_MODEL_VERSION
 
 
 def _is_failed_finding(finding):
@@ -38,6 +33,8 @@ def _is_failed_finding(finding):
     NOT_APPLICABLE findings (severity=None, no passed key, or passed=True
     with special status) are correctly excluded.
     """
+    if finding.get('status') is not None:
+        return finding['status'] == 'FAIL'
     passed_val = finding.get("passed", None)
     severity = finding.get("severity")
     # Explicit False: os_hardening/webapp FAIL
@@ -59,11 +56,31 @@ def compute_composite(layer_results, weights=None):
         }
     Only layers actually present in layer_results are included/reweighted.
     """
-    weights = weights or DEFAULT_WEIGHTS
-    present_layers = {k: v for k, v in layer_results.items() if v is not None}
+    weights = DEFAULT_WEIGHTS if weights is None else weights
+    if any(not isinstance(w, (int, float)) or not math.isfinite(w) or w < 0
+           for w in weights.values()):
+        raise ValueError('Weights must be finite nonnegative numbers')
+    present_layers = {}
+    excluded_layers = {}
+    for layer, result in layer_results.items():
+        if result is None:
+            excluded_layers[layer] = 'Not assessed'
+        elif result.get('error'):
+            excluded_layers[layer] = 'Assessment error'
+        elif result.get('applicable_checks') == 0 or result.get('score') is None:
+            excluded_layers[layer] = 'No evaluated score'
+        elif weights.get(layer, 0) == 0:
+            excluded_layers[layer] = 'Zero or unspecified weight'
+        else:
+            score = result['score']
+            if not isinstance(score, (int, float)) or not math.isfinite(score) or not 0 <= score <= 100:
+                raise ValueError('Layer scores must be finite numbers in [0, 100]')
+            present_layers[layer] = result
 
     if not present_layers:
-        return {"composite_score": None, "layers": {}, "recommendations": []}
+        return {'composite_score': None, 'layers': {}, 'recommendations': [],
+                'weakest_layer': None, 'excluded_layers': excluded_layers,
+                'scoring_model_ver': SCORING_MODEL_VERSION, 'weights': dict(weights)}
 
     # Re-normalize weights across only the layers that were actually run
     total_weight = sum(weights.get(layer, 0) for layer in present_layers)
@@ -76,7 +93,7 @@ def compute_composite(layer_results, weights=None):
         composite += layer_score * layer_weight
         layer_summary[layer] = {
             "score": layer_score,
-            "weight_used": round(layer_weight, 2),
+            "weight_used": layer_weight,
         }
 
     composite = round(composite)
@@ -106,4 +123,7 @@ def compute_composite(layer_results, weights=None):
         "layers": layer_summary,
         "weakest_layer": weakest_layer,
         "recommendations": all_recommendations,
+        'excluded_layers': excluded_layers,
+        'scoring_model_ver': SCORING_MODEL_VERSION,
+        'weights': dict(weights),
     }

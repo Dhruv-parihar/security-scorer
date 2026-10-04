@@ -1,14 +1,14 @@
 # PROJECT STATE
 
-**Last updated:** 2026-09-18
-**Updated by:** Claude (implementation agent)
-**Current branch:** phase/4b-prevalence
+**Last updated:** 2026-10-05
+**Updated by:** Continuation audit
+**Current branch:** phase/5a-results
 **Baseline branch:** main @ 6edab0a
 
 ---
 
 ## Current Phase
-PHASE 4B — PREVALENCE + CO-OCCURRENCE ANALYSIS: COMPLETE
+CONTINUATION HARDENING — CODE VERIFICATION COMPLETE; EMPIRICAL EVIDENCE PENDING
 
 ## Completed Work
 - [x] Phase 0: Repo audit (phase/0-audit @ d4977a1)
@@ -17,6 +17,18 @@ PHASE 4B — PREVALENCE + CO-OCCURRENCE ANALYSIS: COMPLETE
 - [x] Phase 3: CLI/Flask wiring + 29 tests (phase/3-pipeline @ 62806fe)
 - [x] Phase 4A: Sensitivity analysis + 39 tests (phase/4a-sensitivity @ df25f0b)
 - [x] Phase 4B: Prevalence + co-occurrence + 54 tests (phase/4b-prevalence)
+- [x] Continuation R4--R8: applicability-aware scoring, duplicate-safe
+  analysis, versioned scoring configuration, deterministic score snapshots,
+  and same-target longitudinal analysis.
+- [x] Continuation R10: deterministic labelled fixture generator and manifest.
+- [x] Continuation R11: reproducibility guide, exact verified development
+  dependency lock, canonical test discovery, and GitHub Actions test workflow.
+- [x] Continuation scope guard: composite/persistence is blocked when active
+  scan layers map to different targets, or local OS results are mixed with a
+  remote target without an explicit binding.
+- [x] Continuation schema v3: explicit, case-insensitive scan-identifier
+  mappings allow an authorized IP and URL to resolve to one target without
+  inference; ambiguous duplicate identifiers are rejected.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -36,8 +48,9 @@ PHASE 4B — PREVALENCE + CO-OCCURRENCE ANALYSIS: COMPLETE
 - tests/test_phase3.py:    29 tests — PASS (Phase 3)
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
-- Total: 195/195 PASS
-- Command: python3 -m pytest tests/ -v
+- Historical Phase 4B count: 195/195 PASS. This is not the current count.
+- Current continuation verification: 245 passed, 1 skipped.
+- Command: python -m pytest -q -p no:cacheprovider
 
 ## Key Research Properties (all verified by tests)
 - Denominator = PASS+FAIL only; NOT_APPLICABLE/NOT_TESTED/ERROR/UNKNOWN excluded
@@ -47,9 +60,16 @@ PHASE 4B — PREVALENCE + CO-OCCURRENCE ANALYSIS: COMPLETE
 - empirical_limitation and causal_inference_warning always present
 - preliminary flag when n_applicable < 10
 - All results JSON-serializable and deterministic
+- A composite assessment is attributable to only one target record
+- Active scan identifiers are explicitly mapped and never relationship-inferred
 
 ## Pending
-- Phase 5: Research paper update (sensitivity + prevalence results)
-- Phase 5: Longitudinal tracking queries
-- R8, R9: Minor technical debt
-Requires human approval before beginning.
+- Authorized raw research database and raw scan outputs for empirical results.
+- Full original phase plan, if one exists; the continuation log contains a new,
+  clearly labelled work-package plan instead.
+- Controlled validation of scanner accuracy and an authorized observational
+  dataset. Synthetic fixtures cannot provide these results.
+- Durable Git checkpoint: local branch creation is blocked by Windows deny
+  entries on Git metadata; a selective staging attempt was also blocked at
+  `.git/index.lock`. GitHub branch creation was rejected by the connected
+  integration. No ACLs or remote state were changed.

@@ -25,12 +25,12 @@ SECURITY_HEADERS = {
     "X-Content-Type-Options": "low",
 }
 
-SEVERITY_WEIGHT = {
-    "critical": 40,
-    "high": 25,
-    "medium": 10,
-    "low": 5,
-}
+from modules.scoring_config import WEB_SEVERITY_WEIGHT as SEVERITY_WEIGHT
+
+
+def _unevaluated(check_id, status, reason):
+    return {'id': check_id, 'status': status, 'passed': None, 'severity': None,
+            'description': reason, 'recommendation': None}
 
 
 def _check_headers(response):
@@ -83,7 +83,7 @@ def _inject_param(url, payload):
 def _check_sqli(url, session):
     test_url = _inject_param(url, SQLI_PAYLOAD)
     if not test_url:
-        return None
+        return _unevaluated('reflected_sqli_heuristic', 'NOT_TESTED', 'No query parameters to test')
     try:
         resp = session.get(test_url, timeout=10)
         suspicious = any(
@@ -98,13 +98,13 @@ def _check_sqli(url, session):
             "recommendation": "Use parameterized queries; investigate this endpoint manually",
         }
     except requests.RequestException:
-        return None
+        return _unevaluated('reflected_sqli_heuristic', 'ERROR', 'Probe request failed')
 
 
 def _check_xss(url, session):
     test_url = _inject_param(url, XSS_PAYLOAD)
     if not test_url:
-        return None
+        return _unevaluated('reflected_xss_heuristic', 'NOT_TESTED', 'No query parameters to test')
     try:
         resp = session.get(test_url, timeout=10)
         reflected = XSS_PAYLOAD in resp.text
@@ -116,7 +116,7 @@ def _check_xss(url, session):
             "recommendation": "Escape/encode user input before rendering it in HTML",
         }
     except requests.RequestException:
-        return None
+        return _unevaluated('reflected_xss_heuristic', 'ERROR', 'Probe request failed')
 
 
 def run(target_url):
@@ -128,7 +128,7 @@ def run(target_url):
     except requests.RequestException as e:
         return {
             "layer": "webapp",
-            "score": 0,
+            "score": None,
             "findings": [],
             "error": f"Could not reach target URL: {e}",
         }
@@ -146,7 +146,7 @@ def run(target_url):
 
     total_penalty = sum(
         SEVERITY_WEIGHT.get(f["severity"], 5)
-        for f in findings if not f["passed"]
+        for f in findings if f['passed'] is False
     )
     score = max(0, 100 - total_penalty)
 

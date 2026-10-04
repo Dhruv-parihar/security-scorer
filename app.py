@@ -16,9 +16,10 @@ Usage:
 from flask import Flask, render_template, request
 from modules import os_hardening, network_scan, webapp_scan, scoring
 from modules.authorization import check_authorization
+from modules.assessment_scope import validate_composite_scope
 from db.schema import initialize, seed_taxonomy
 from db.adapters import store_assessment_results
-from db.repository import list_targets, create_target
+from db.repository import list_targets, create_target, add_target_identifier
 import os
 
 app = Flask(__name__)
@@ -64,6 +65,25 @@ def add_target():
     return render_template("index.html", targets=targets, errors=errors)
 
 
+@app.route("/targets/identifiers/add", methods=["POST"])
+def add_target_identifier_route():
+    """Link an additional explicitly authorized scan identifier to one target."""
+    conn = _get_db()
+    errors = []
+    try:
+        add_target_identifier(
+            conn,
+            target_id=request.form.get("target_id", "").strip(),
+            identifier=request.form.get("identifier", "").strip(),
+            notes=request.form.get("identifier_notes", "").strip() or None,
+        )
+    except Exception as e:
+        errors.append(f"Could not link target identifier: {e}")
+    targets = list_targets(conn)
+    conn.close()
+    return render_template("index.html", targets=targets, errors=errors)
+
+
 @app.route("/scan", methods=["POST"])
 def scan():
     layers_selected = request.form.getlist("layers")
@@ -73,7 +93,7 @@ def scan():
     layer_results = {}
     errors = []
     auth_blocks = []
-    target_id = None
+    target_ids = {}
 
     conn = _get_db()
 
@@ -92,7 +112,7 @@ def scan():
                     f"Network scan blocked for '{network_target}': {message}"
                 )
             else:
-                target_id = tid
+                target_ids["network"] = tid
                 result = network_scan.run(network_target)
                 if result.get("error"):
                     errors.append(f"Network scan: {result['error']}")
@@ -110,8 +130,7 @@ def scan():
                     f"Web scan blocked for '{webapp_target}': {message}"
                 )
             else:
-                if not target_id:
-                    target_id = tid
+                target_ids["webapp"] = tid
                 result = webapp_scan.run(webapp_target)
                 if result.get("error"):
                     errors.append(f"Web app scan: {result['error']}")
@@ -119,11 +138,16 @@ def scan():
                     layer_results["webapp"] = result
 
     # ── Composite scoring ────────────────────────────────────────────────────
-    composite = scoring.compute_composite(layer_results)
+    scope_error, target_id = validate_composite_scope(layer_results, target_ids)
+    if scope_error:
+        errors.append(scope_error)
+        composite = scoring.compute_composite({})
+    else:
+        composite = scoring.compute_composite(layer_results)
 
     # ── Persist to research DB ───────────────────────────────────────────────
     assessment_id = None
-    if target_id and layer_results:
+    if target_id and layer_results and not scope_error:
         try:
             assessment_id = store_assessment_results(
                 conn, target_id, layer_results, composite

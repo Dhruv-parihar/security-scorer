@@ -48,8 +48,10 @@ import os
 import itertools
 from datetime import datetime, timezone
 from typing import Optional
+from statistics import median
+from analysis.common import EVALUATIONS, LATEST_SNAPSHOTS, validate_evaluations, open_readonly
 
-ANALYSIS_VERSION = "1.0.0"
+ANALYSIS_VERSION = "1.1.0"
 ANALYSIS_ID = "prevalence_v1"
 
 # Statuses that count in prevalence denominators (actually evaluated checks)
@@ -74,7 +76,7 @@ def _empirical_note(n_assessments: int) -> str:
     if n_assessments < SMALL_SAMPLE_THRESHOLD:
         return (
             f"Small sample ({n_assessments} assessment(s)). Results are "
-            f"preliminary. Reliable prevalence estimates require N ≥ {SMALL_SAMPLE_THRESHOLD}. "
+            f"preliminary. The threshold of {SMALL_SAMPLE_THRESHOLD} is a display flag, not a guarantee of reliability. "
             "Do not draw generalizable conclusions from this dataset."
         )
     return (
@@ -103,6 +105,7 @@ def finding_prevalence(conn, layer: Optional[str] = None) -> list[dict]:
             fail_pct, severity_when_failing, denominator_note
         }
     """
+    validate_evaluations(conn)
     where = "f.status IN ('PASS','FAIL')"
     params: list = []
     if layer:
@@ -124,7 +127,7 @@ def finding_prevalence(conn, layer: Optional[str] = None) -> list[dict]:
                 / NULLIF(COUNT(DISTINCT f.assessment_id), 0),
             1)                                                       AS fail_pct,
             GROUP_CONCAT(DISTINCT f.severity)                        AS severities
-        FROM finding f
+        FROM ({EVALUATIONS}) f
         WHERE {where}
         GROUP BY f.check_id, f.layer
         ORDER BY fail_pct DESC, n_fail DESC, f.check_id
@@ -165,7 +168,8 @@ def layer_prevalence(conn) -> list[dict]:
             unique_checks_failing, denominator_note
         }
     """
-    rows = conn.execute("""
+    validate_evaluations(conn)
+    rows = conn.execute(f"""
         SELECT
             f.layer,
             COUNT(*)                                                AS total_check_evaluations,
@@ -178,7 +182,7 @@ def layer_prevalence(conn) -> list[dict]:
                 100.0 * SUM(CASE WHEN f.status='FAIL' THEN 1 ELSE 0 END)
                 / NULLIF(COUNT(*), 0),
             1)                                                     AS overall_fail_pct
-        FROM finding f
+        FROM ({EVALUATIONS}) f
         WHERE f.status IN ('PASS', 'FAIL')
         GROUP BY f.layer
         ORDER BY overall_fail_pct DESC
@@ -196,7 +200,7 @@ def layer_prevalence(conn) -> list[dict]:
             "unique_checks_evaluated": r["unique_checks_evaluated"],
             "unique_checks_failing": r["unique_checks_failing"],
             "denominator_note": (
-                "Denominator = total finding records with status PASS or FAIL "
+                "Denominator = distinct (assessment, layer, check) evaluations with PASS or FAIL "
                 "for this layer. Each (assessment × check_id) pair counted once."
             ),
         })
@@ -324,8 +328,8 @@ def assessment_distribution(conn) -> dict:
     ).fetchone()["c"]
 
     # Score snapshot distribution
-    snap_rows = conn.execute("""
-        SELECT composite_score FROM score_snapshot
+    snap_rows = conn.execute(f"""
+        SELECT composite_score FROM ({LATEST_SNAPSHOTS})
         WHERE composite_score IS NOT NULL
     """).fetchall()
     scores = [r["composite_score"] for r in snap_rows]
@@ -336,13 +340,18 @@ def assessment_distribution(conn) -> dict:
             "min": round(min(scores), 2),
             "max": round(max(scores), 2),
             "mean": round(sum(scores) / len(scores), 2),
-            "median": round(sorted(scores)[len(scores) // 2], 2),
+            "median": round(median(scores), 2),
+            "snapshot_policy": "latest per assessment; timestamp then snapshot_id",
             "buckets": {
                 "0-20":  sum(1 for s in scores if s <= 20),
-                "21-40": sum(1 for s in scores if 21 <= s <= 40),
-                "41-60": sum(1 for s in scores if 41 <= s <= 60),
-                "61-80": sum(1 for s in scores if 61 <= s <= 80),
-                "81-100": sum(1 for s in scores if s >= 81),
+                "21-40": sum(1 for s in scores if 20 < s <= 40),
+                "41-60": sum(1 for s in scores if 40 < s <= 60),
+                "61-80": sum(1 for s in scores if 60 < s <= 80),
+                "81-100": sum(1 for s in scores if 80 < s <= 100),
+            },
+            "bucket_intervals": {
+                "0-20": "[0,20]", "21-40": "(20,40]", "41-60": "(40,60]",
+                "61-80": "(60,80]", "81-100": "(80,100]",
             },
         }
 
@@ -394,81 +403,40 @@ def finding_cooccurrence(
             cross_layer, caution_note
         }
     """
-    where = "status = 'FAIL'"
+    validate_evaluations(conn)
+    where = "status='FAIL'"
+    params = []
     if layer_filter:
-        where += f" AND layer = '{layer_filter}'"
-
-    # Build (assessment_id, check_id, layer) presence table
-    fail_pairs = conn.execute(f"""
-        SELECT DISTINCT assessment_id, check_id, layer
-        FROM finding
-        WHERE {where}
-        ORDER BY check_id
-    """).fetchall()
-
-    if not fail_pairs:
-        return []
-
-    # Group by assessment
-    assessment_checks: dict[str, list[tuple[str, str]]] = {}
-    for row in fail_pairs:
-        aid = row["assessment_id"]
-        assessment_checks.setdefault(aid, []).append(
-            (row["check_id"], row["layer"])
-        )
-
-    # Count per check_id (unique assessments)
-    check_counts: dict[str, int] = {}
-    check_layers: dict[str, str] = {}
-    for check_list in assessment_checks.values():
-        seen = set()
-        for check_id, layer in check_list:
-            if check_id not in seen:
-                check_counts[check_id] = check_counts.get(check_id, 0) + 1
-                check_layers[check_id] = layer
-                seen.add(check_id)
-
-    # All unique check_ids
-    all_checks = sorted(check_counts.keys())
-
-    # Count co-occurrences
-    pair_counts: dict[tuple[str, str], int] = {}
-    for aid, check_list in assessment_checks.items():
-        unique_checks = list({c for c, _ in check_list})
-        for i in range(len(unique_checks)):
-            for j in range(i + 1, len(unique_checks)):
-                a, b = sorted([unique_checks[i], unique_checks[j]])
-                pair_counts[(a, b)] = pair_counts.get((a, b), 0) + 1
-
+        where += " AND layer=?"
+        params.append(layer_filter)
+    rows = conn.execute(f"""
+        SELECT DISTINCT assessment_id, check_id, layer FROM finding
+        WHERE {where} ORDER BY assessment_id, check_id, layer
+    """, params).fetchall()
+    by_assessment = {}
+    counts = {}
+    for row in rows:
+        key = (row["check_id"], row["layer"])
+        by_assessment.setdefault(row["assessment_id"], set()).add(key)
+        counts[key] = counts.get(key, 0) + 1
+    pair_counts = {}
+    for checks in by_assessment.values():
+        for pair in itertools.combinations(sorted(checks), 2):
+            pair_counts[pair] = pair_counts.get(pair, 0) + 1
     results = []
-    for (a, b), n_both in pair_counts.items():
+    for (a, b), n_both in sorted(pair_counts.items()):
         if n_both < min_cooccurrence:
             continue
-        n_a = check_counts.get(a, 0)
-        n_b = check_counts.get(b, 0)
-        denom = max(n_a, n_b)
-        rate = round(n_both / denom, 4) if denom > 0 else 0.0
-        layer_a = check_layers.get(a, "?")
-        layer_b = check_layers.get(b, "?")
         results.append({
-            "check_a": a,
-            "layer_a": layer_a,
-            "check_b": b,
-            "layer_b": layer_b,
-            "n_assessments_with_a": n_a,
-            "n_assessments_with_b": n_b,
+            "check_a": a[0], "layer_a": a[1], "check_b": b[0], "layer_b": b[1],
+            "n_assessments_with_a": counts[a], "n_assessments_with_b": counts[b],
             "n_assessments_with_both": n_both,
-            "cooccurrence_rate": rate,
-            "cross_layer": layer_a != layer_b,
-            "caution_note": (
-                "Co-occurrence is descriptive and observational. "
-                "It does not imply causation or a dependency relationship "
-                "between these findings."
-            ),
+            "cooccurrence_rate": round(n_both / max(counts[a], counts[b]), 4),
+            "cross_layer": a[1] != b[1],
+            "caution_note": "Co-occurrence does not imply causation. Descriptive joint FAIL presence only.",
         })
-
-    results.sort(key=lambda r: (-r["n_assessments_with_both"],
-                                 -r["cooccurrence_rate"]))
+    results.sort(key=lambda r: (-r["n_assessments_with_both"], -r["cooccurrence_rate"],
+                               r["check_a"], r["layer_a"], r["check_b"], r["layer_b"]))
     return results[:max_pairs]
 
 
@@ -504,7 +472,7 @@ def run_full_analysis(conn) -> dict:
                 "Counts unique assessment-level FAIL presence only."
             ),
             "layer_prevalence_denominator": (
-                "Total finding records (per layer) with status PASS or FAIL."
+                "Distinct (assessment, layer, check) evaluations with PASS or FAIL."
             ),
         },
         "causal_inference_warning": (
@@ -602,8 +570,7 @@ def main():
         sys.exit(1)
 
     sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    from db.schema import get_connection
-    conn = get_connection(db_path)
+    conn = open_readonly(db_path)
 
     analysis = run_full_analysis(conn)
     conn.close()

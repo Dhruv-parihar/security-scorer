@@ -22,7 +22,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from db.schema import initialize, seed_taxonomy
 from db.repository import (
-    create_target, list_targets,
+    create_target, list_targets, add_target_identifier,
     get_findings, get_findings_by_status, get_score_snapshots
 )
 from db.adapters import store_assessment_results
@@ -256,6 +256,51 @@ class TestFlaskPath:
         assert resp.status_code == 200
         mock_scan.assert_called_once()
 
+    def test_flask_blocks_cross_target_composite_persistence(
+        self, flask_client, lab_target_id, web_target_id
+    ):
+        network_result = {
+            "layer": "network", "score": 50, "open_ports": 0, "findings": []
+        }
+        web_result = {"layer": "webapp", "score": 80, "findings": []}
+        with (
+            patch("app.network_scan.run", return_value=network_result) as mock_network,
+            patch("app.webapp_scan.run", return_value=web_result) as mock_web,
+            patch("app.store_assessment_results") as mock_store,
+        ):
+            resp = flask_client.post("/scan", data={
+                "layers": ["network", "webapp"],
+                "network_target": "192.168.56.102",
+                "webapp_target": "http://192.168.56.102/dvwa/vulnerabilities/sqli/?id=1",
+            })
+        mock_network.assert_called_once()
+        mock_web.assert_called_once()
+        mock_store.assert_not_called()
+        assert b"different target records" in resp.data
+
+    def test_flask_persists_same_target_multi_identifier_composite(
+        self, flask_client, db, lab_target_id
+    ):
+        web_identifier = "https://lab.example.test/application"
+        add_target_identifier(db, lab_target_id, web_identifier)
+        network_result = {
+            "layer": "network", "score": 50, "open_ports": 0, "findings": []
+        }
+        web_result = {"layer": "webapp", "score": 80, "findings": []}
+        with (
+            patch("app.network_scan.run", return_value=network_result),
+            patch("app.webapp_scan.run", return_value=web_result),
+            patch("app.store_assessment_results") as mock_store,
+        ):
+            resp = flask_client.post("/scan", data={
+                "layers": ["network", "webapp"],
+                "network_target": "192.168.56.102",
+                "webapp_target": web_identifier,
+            })
+        assert resp.status_code == 200
+        mock_store.assert_called_once()
+        assert mock_store.call_args.args[1] == lab_target_id
+
     def test_authorized_scan_persists_assessment(
         self, flask_client, db, lab_target_id
     ):
@@ -301,6 +346,22 @@ class TestFlaskPath:
         })
         assert resp.status_code == 200
         # Route returns index page — just verify it renders
+
+    def test_add_target_identifier_route(self, flask_client, lab_target_id):
+        identifier = "https://lab.example.test/linked-by-form"
+        with patch("app.add_target_identifier") as mock_add:
+            resp = flask_client.post("/targets/identifiers/add", data={
+                "target_id": lab_target_id,
+                "identifier": identifier,
+                "identifier_notes": "Lab approval reference",
+            })
+        assert resp.status_code == 200
+        mock_add.assert_called_once()
+        assert mock_add.call_args.kwargs == {
+            "target_id": lab_target_id,
+            "identifier": identifier,
+            "notes": "Lab approval reference",
+        }
 
     def test_existing_response_format_preserved(self, flask_client):
         """Response must contain composite and findings sections."""

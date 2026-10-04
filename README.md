@@ -29,6 +29,9 @@ disconnected reports.
 - [`docs/03-network-scan.md`](./docs/03-network-scan.md) — Network vulnerability scan against Metasploitable 2
 - [`docs/04-composite-scan.md`](./docs/04-composite-scan.md) — Full composite scan results and scoring breakdown
 - [`docs/05-flask-ui.md`](./docs/05-flask-ui.md) — Flask web UI walkthrough
+- [`docs/research-methodology.md`](./docs/research-methodology.md) — ethics, evidence, and analysis rules
+- [`docs/reproducibility.md`](./docs/reproducibility.md) — test and analysis reproduction guide
+- [`requirements-dev.lock`](./requirements-dev.lock) — reviewed dependency set for repeatable test verification
 
 ## Architecture
 
@@ -92,13 +95,14 @@ python3 app.py
 Open `http://127.0.0.1:5000` in a browser, select layers and targets,
 and view results with ranked recommendations.
 
-## Validation
+## Research evidence status
 
-This framework was validated against a self-hosted lab environment
-(Parrot Security OS attacking Metasploitable2 + DVWA) — see the
-companion repo [`parrot-pentest-lab`](https://github.com/Dhruv-parihar/parrot-pentest-lab)
-for the raw exploitation data this tool's severity table and scoring
-logic were built from.
+The codebase has automated tests and supports a research database, but this
+repository does not currently contain an authorized empirical dataset or raw
+scan outputs. Scanner output and synthetic tests must not be presented as
+empirical prevalence, remediation, or effectiveness results. See
+[`docs/reproducibility.md`](./docs/reproducibility.md) before generating or
+reporting research analysis.
 
 ## Limitations
 
@@ -114,4 +118,4 @@ logic were built from.
 - Live CVE feed integration (NVD API) instead of a static severity table
 - Multi-distro support for OS hardening checks
 - Authenticated web app scanning (session/cookie-aware)
-- Historical trend tracking across repeated scans
+- Further validation against an authorized, provenance-complete dataset

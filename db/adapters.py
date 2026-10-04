@@ -26,6 +26,8 @@ from db.repository import (
     create_finding, create_score_snapshot, create_remediation,
     get_taxonomy_id,
 )
+from db.schema import get_current_version
+from modules.scoring_config import SCORING_MODEL_VERSION, SEVERITY_CONFIG_VERSION
 
 # Map scanner layer keys → DB layer values
 LAYER_MAP = {
@@ -78,9 +80,9 @@ def _infer_status(finding, layer_key):
 
 def _infer_severity(finding, status):
     """
-    Normalize severity. NOT_APPLICABLE must have None severity.
+    Normalize severity. Unevaluated statuses must have None severity.
     """
-    if status in ("NOT_APPLICABLE", "NOT_TESTED"):
+    if status in ("NOT_APPLICABLE", "NOT_TESTED", "ERROR", "UNKNOWN"):
         return None
     raw = finding.get("severity")
     return SEVERITY_MAP.get(raw, raw)
@@ -103,7 +105,7 @@ def store_assessment_results(
     tool_version="1.0.0", methodology_version="1.0",
     assessor=None, notes=None,
     scoring_model_id="weighted_composite_v1",
-    scoring_model_ver="1.0",
+    scoring_model_ver=None,
     weight_os=0.30, weight_network=0.35, weight_web=0.35,
 ):
     """
@@ -143,6 +145,7 @@ def store_assessment_results(
         authorization_status=authorization_status,
         tool_version=tool_version,
         methodology_version=methodology_version,
+        schema_version=get_current_version(conn),
         assessor=assessor, notes=notes,
     )
 
@@ -202,10 +205,12 @@ def store_assessment_results(
             assessment_id=assessment_id,
             composite_result=composite_result,
             scoring_model_id=scoring_model_id,
-            scoring_model_ver=scoring_model_ver,
-            weight_os=weight_os,
-            weight_network=weight_network,
-            weight_web=weight_web,
+            scoring_model_ver=scoring_model_ver or composite_result.get('scoring_model_ver', SCORING_MODEL_VERSION),
+            weight_os=composite_result.get('weights', {}).get('os_hardening', weight_os),
+            weight_network=composite_result.get('weights', {}).get('network', weight_network),
+            weight_web=composite_result.get('weights', {}).get('webapp', weight_web),
+            model_metadata={'severity_config_version': SEVERITY_CONFIG_VERSION,
+                            'excluded_layers': composite_result.get('excluded_layers', {})},
         )
 
     close_assessment(conn, assessment_id)

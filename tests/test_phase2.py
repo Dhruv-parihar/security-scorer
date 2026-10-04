@@ -28,7 +28,10 @@ from modules.os_hardening import (
     check_world_writable_files,
 )
 from db.schema import initialize, seed_taxonomy
-from db.repository import create_target, create_assessment, get_findings, get_findings_by_status, get_score_snapshots
+from db.repository import (
+    create_target, add_target_identifier, create_assessment, get_findings,
+    get_findings_by_status, get_score_snapshots,
+)
 from db.adapters import store_assessment_results
 
 
@@ -224,8 +227,8 @@ class TestR2R3OSNotApplicable:
         na_findings = [f for f in findings if f["status"] == "NOT_APPLICABLE"]
         applicable = [f for f in findings if f["status"] in ("PASS", "FAIL")]
         if not applicable:
-            # All checks NOT_APPLICABLE: score should be 0, not misleading
-            assert result["score"] == 0
+            # Empty evaluation has no score; zero would imply evaluated failure.
+            assert result["score"] is None
         else:
             # Score must equal pass_count/applicable_count * 100
             pass_count = sum(1 for f in applicable if f["status"] == "PASS")
@@ -304,6 +307,14 @@ class TestR4Authorization:
             db, "http://192.168.56.102/dvwa/vulnerabilities/sqli/?id=1"
         )
         assert target_id == web_target
+
+    def test_explicit_secondary_identifier_maps_to_same_authorized_target(
+        self, db, lab_target
+    ):
+        web_identifier = "https://lab.example.test/application"
+        add_target_identifier(db, lab_target, web_identifier)
+        assert require_authorization(db, "192.168.56.102") == lab_target
+        assert require_authorization(db, web_identifier) == lab_target
 
     def test_check_authorization_returns_bool_tuple(self, db, lab_target):
         authorized, tid, msg = check_authorization(db, "192.168.56.102")

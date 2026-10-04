@@ -1,6 +1,6 @@
 # Research Methodology
-**Version:** 1.0
-**Last updated:** 2026-09-18
+**Version:** 1.1
+**Last updated:** 2026-10-05
 
 ---
 
@@ -31,23 +31,29 @@ investigate:
 - `authorization_status` must be set to one of:
   `OWNED`, `LAB`, `EXPLICITLY_AUTHORIZED`, `CONSENTED_RESEARCH`
 - `authorization_ref` should reference the authorization document/ticket
+- Every active scan input must have an explicit `target_identifier` mapping to
+  that target; an IP, hostname, and URL are never assumed to refer to the same
+  system solely because they look related
 
-**Passive analysis** (HTTP header inspection of public web properties)
-does not constitute active testing and does not require the same level
-of authorization as active scanning. All passive findings must still be
-documented with appropriate scope metadata.
+Even low-impact collection such as HTTP-header inspection must stay within a
+documented authorization and scope decision. If that decision is absent, do
+not collect against the target. All findings must retain scope metadata.
 
-**Data minimization:** IP addresses, hostnames, and credentials are NOT
-stored in the research database. Targets are identified by UUID with a
-researcher-assigned anonymized alias.
+**Data minimization:** credentials are never stored. If an IP address,
+hostname, or URL must be retained locally for authorization lookup, it is kept
+only as a sensitive `target_identifier` mapping; research exports remove or
+pseudonymize it. Assessments remain linked to a UUID and researcher-assigned
+alias.
 
 ## 3. Assessment Protocol
 
 ### 3.1 Pre-Assessment
 1. Verify target authorization record exists in database
 2. Record assessment start time
-3. Document tool version, methodology version, schema version
+3. Document tool version, methodology version, schema version, detector/check
+   version, and scoring-configuration version
 4. Record scope (OS / NETWORK / WEB / ALL)
+5. Verify every active scan input is explicitly mapped to the intended target
 
 ### 3.2 During Assessment
 - Each check produces exactly one finding with an explicit status
@@ -55,6 +61,10 @@ researcher-assigned anonymized alias.
 - NOT_APPLICABLE must be used when a check does not apply to the target OS/environment
 - NOT_TESTED must be used when a check was not run (never silently omit)
 - Evidence strings must reference actual observed data, not assumptions
+- A composite score may represent only one target record. Local OS hardening
+  must not be merged with remote network/web observations without an explicit
+  target binding, and active layers mapped to different target records must not
+  be combined or persisted as one assessment.
 
 ### 3.3 Post-Assessment
 1. Record assessment end time
@@ -97,11 +107,11 @@ would systematically bias cross-OS comparisons.
 | low | Defense-in-depth concern, minimal direct impact |
 | informational | Notable but not a security weakness |
 
-Severity is NULL for NOT_APPLICABLE and NOT_TESTED findings.
+Severity is NULL for NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN findings.
 
 ## 5. Scoring Model
 
-### 5.1 Current Model: weighted_composite_v1
+### 5.1 Current Model: weighted_composite_v1 (version 1.1)
 
 The current scoring model is preserved as a baseline. It is NOT claimed
 to be empirically optimal — the weights were set by expert judgment.
@@ -122,19 +132,30 @@ Scores are stored as `score_snapshot` records alongside the model ID and
 weights used. This allows future models to be compared against the current
 baseline on the same underlying findings.
 
+Layers with an assessment error, no evaluated checks, or no score are excluded
+from the composite and recorded as excluded; they are never converted to a
+score of zero. The network and web layers retain separately versioned severity
+penalty tables because their historical penalty policies differ.
+
 ### 5.2 Known Limitations of Current Model
 
 - Weights based on expert judgment, not empirical calibration
 - Network layer penalty accumulation means 3+ critical services → score 0
   with no differentiation between "bad" and "catastrophically bad"
 - OS module does not weight individual checks by severity
-- NOT_APPLICABLE findings are handled inconsistently (Phase 1 fix pending)
+- The scanner is a bounded indicator tool, not a vulnerability-completeness
+  guarantee; raw observations and detector limitations must accompany results
 
-### 5.3 Sensitivity Analysis (Phase 12)
+### 5.3 Sensitivity Analysis
 
 Before drawing conclusions from composite scores, a sensitivity analysis
 must be conducted showing how composite scores and weakest-layer
 identification change across a range of plausible weight values.
+
+Sensitivity analysis uses the latest score snapshot for each assessment. When
+multiple snapshots have the same timestamp, an assessment-local
+`snapshot_sequence` provides deterministic ordering. It evaluates mathematical
+robustness only and does not calibrate weights empirically.
 
 ## 6. Statistical Claims
 
@@ -163,11 +184,18 @@ dataset used, including date range of assessments and tool versions.
 For repeated assessments of the same target:
 1. Create a new assessment record (do not modify previous findings)
 2. After remediation, create a new assessment and link the score snapshot
-   to the same target
+   to the same target. Keep the original assessment immutable.
 3. Update remediation records with `verification_assessment_id` and
    `verification_result`
 4. Track: findings introduced, findings resolved, findings persistent,
    score changes over time
+
+The implemented longitudinal analysis compares consecutive assessments of the
+same target. A finding is described as resolved only after an explicit
+FAIL-to-PASS transition for the same layer and check. Missing, NOT_TESTED,
+ERROR, UNKNOWN, and NOT_APPLICABLE states are not comparable and cannot prove a
+resolution. Composite-score deltas are reported only for matching scoring model
+and weight configurations. These observations do not establish causation.
 
 ## 9. What This Methodology Does NOT Cover
 

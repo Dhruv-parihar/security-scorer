@@ -31,14 +31,16 @@ def require_authorization(conn, identifier, scope=None):
     """
     Verify that an explicit authorization record exists for this identifier.
 
-    identifier: the target IP, hostname, or URL (used as target_alias lookup)
+    identifier: an explicitly registered target IP, hostname, or URL
     scope:      optional scope filter (e.g. "NETWORK", "WEB", "ALL")
     conn:       open DB connection (from db.schema.get_connection)
 
     Returns: target_id string if authorized.
     Raises:  AuthorizationError if not authorized or record not found.
 
-    The lookup matches target_alias exactly (case-insensitive).
+    The lookup matches an explicit target_identifier exactly
+    (case-insensitive). Identifiers are never normalized into an authorization
+    decision or inferred to refer to the same target.
     Authorization_status must be one of:
         OWNED, LAB, EXPLICITLY_AUTHORIZED, CONSENTED_RESEARCH
     """
@@ -51,9 +53,11 @@ def require_authorization(conn, identifier, scope=None):
 
     row = conn.execute(
         """
-        SELECT target_id, target_alias, authorization_status, authorization_ref
-        FROM target
-        WHERE LOWER(target_alias) = LOWER(?)
+        SELECT t.target_id, t.target_alias, t.authorization_status,
+               t.authorization_ref
+        FROM target_identifier AS ti
+        JOIN target AS t ON t.target_id = ti.target_id
+        WHERE ti.identifier = ? COLLATE NOCASE
         """,
         (identifier,)
     ).fetchone()

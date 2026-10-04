@@ -24,9 +24,10 @@ from datetime import datetime
 
 from modules import os_hardening, network_scan, webapp_scan, scoring
 from modules.authorization import check_authorization, AuthorizationError
+from modules.assessment_scope import validate_composite_scope
 from db.schema import initialize, seed_taxonomy
 from db.adapters import store_assessment_results
-from db.repository import create_target, list_targets
+from db.repository import create_target, list_targets, add_target_identifier
 
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
 DB_PATH = os.path.join(os.path.dirname(__file__), "research.db")
@@ -165,17 +166,18 @@ def manage_targets(conn):
     print_header("TARGET MANAGEMENT")
     targets = list_targets(conn)
     if targets:
-        print(f"{'Alias':40} {'Type':12} {'Auth':25} {'OS'}")
-        print("-" * 90)
+        print(f"{'Target ID':36} {'Alias':30} {'Type':12} {'Auth'}")
+        print("-" * 115)
         for t in targets:
-            print(f"{t['target_alias'][:40]:40} {t['target_type'][:12]:12} "
-                  f"{t['authorization_status']:25} {t['os_family'] or '-'}")
+            print(f"{t['target_id']:36} {t['target_alias'][:30]:30} "
+                  f"{t['target_type'][:12]:12} {t['authorization_status']}")
     else:
         print("No targets registered yet.")
 
     print("\nOptions:")
     print("  a) Add a new target")
-    print("  b) Back to main menu")
+    print("  b) Link another authorized scan identifier to a target")
+    print("  c) Back to main menu")
     sub = input("\nChoice: ").strip().lower()
 
     if sub == "a":
@@ -195,6 +197,16 @@ def manage_targets(conn):
         except Exception as e:
             print(f"\n[ERROR] {e}")
 
+    elif sub == "b":
+        target_id = input("Existing target UUID (shown above): ").strip()
+        identifier = input("Additional authorized IP, hostname, or URL: ").strip()
+        notes = input("Authorization/scope note (optional): ").strip() or None
+        try:
+            add_target_identifier(conn, target_id, identifier, notes=notes)
+            print(f"\n[OK] Identifier linked to target {target_id[:8]}...")
+        except Exception as e:
+            print(f"\n[ERROR] {e}")
+
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 
@@ -209,7 +221,7 @@ def main():
     choice = input("\nSelect an option: ").strip()
 
     layer_results = {}
-    target_id = None
+    target_ids = {}
 
     if choice == "1":
         layer_results["os_hardening"] = run_os_hardening()
@@ -219,12 +231,14 @@ def main():
         net_result, target_id = run_network(conn, target)
         if net_result:
             layer_results["network"] = net_result
+            target_ids["network"] = target_id
 
     elif choice == "3":
         target = input("Target URL: ").strip()
         web_result, target_id = run_webapp(conn, target)
         if web_result:
             layer_results["webapp"] = web_result
+            target_ids["webapp"] = target_id
 
     elif choice == "4":
         layer_results["os_hardening"] = run_os_hardening()
@@ -232,13 +246,12 @@ def main():
         net_result, net_tid = run_network(conn, net_target)
         if net_result:
             layer_results["network"] = net_result
-            target_id = net_tid
+            target_ids["network"] = net_tid
         web_target = input("\nTarget URL for web app scan: ").strip()
         web_result, web_tid = run_webapp(conn, web_target)
         if web_result:
             layer_results["webapp"] = web_result
-            if not target_id:
-                target_id = web_tid
+            target_ids["webapp"] = web_tid
 
     elif choice == "5":
         manage_targets(conn)
@@ -255,6 +268,12 @@ def main():
         conn.close()
         return
 
+    scope_error, target_id = validate_composite_scope(layer_results, target_ids)
+    if scope_error:
+        print(f"\n[BLOCKED] {scope_error}")
+        print("Individual scan output above is retained, but no composite or research record was created.")
+        conn.close()
+        return
     composite = scoring.compute_composite(layer_results)
     print_composite(composite)
     save_report(layer_results, composite)
