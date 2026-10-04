@@ -8,7 +8,7 @@
 ---
 
 ## Current Phase
-CONTINUATION HARDENING — CODE VERIFICATION COMPLETE; EMPIRICAL EVIDENCE PENDING
+CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PENDING
 
 ## Completed Work
 - [x] Phase 0: Repo audit (phase/0-audit @ d4977a1)
@@ -69,7 +69,7 @@ CONTINUATION HARDENING — CODE VERIFICATION COMPLETE; EMPIRICAL EVIDENCE PENDIN
   clearly labelled work-package plan instead.
 - Controlled validation of scanner accuracy and an authorized observational
   dataset. Synthetic fixtures cannot provide these results.
-- Durable Git checkpoint: local branch creation is blocked by Windows deny
-  entries on Git metadata; a selective staging attempt was also blocked at
-  `.git/index.lock`. GitHub branch creation was rejected by the connected
-  integration. No ACLs or remote state were changed.
+- Durable Git checkpoint: `3ff69af` was selectively staged and pushed to
+  `origin/phase/5a-results`. The connected GitHub integration still cannot
+  create a new branch, but elevated local Git access permitted the existing
+  tracked branch to be updated. Archived handoff directories remain untracked.
