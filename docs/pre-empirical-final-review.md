@@ -1,6 +1,6 @@
 # Pre-Empirical Final Review
 
-**Review date:** 2026-10-05  
+**Review date:** 2026-10-05
 **Review scope:** The `phase/5a-results` working tree and its recorded remote
 checkpoints. This review does not treat historical handoff files, synthetic
 fixtures, or a passing test suite as empirical observations.
