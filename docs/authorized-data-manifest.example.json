@@ -1,0 +1,10 @@
+{
+  "dataset_sha256": "sha256 of the research.db file",
+  "raw_artifacts": [
+    {
+      "assessment_id": "assessment UUID from the database",
+      "path": "relative/path/to/raw-scan-output.txt",
+      "sha256": "sha256 of the raw artifact file"
+    }
+  ]
+}

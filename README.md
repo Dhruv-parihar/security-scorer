@@ -102,7 +102,14 @@ repository does not currently contain an authorized empirical dataset or raw
 scan outputs. Scanner output and synthetic tests must not be presented as
 empirical prevalence, remediation, or effectiveness results. See
 [`docs/reproducibility.md`](./docs/reproducibility.md) before generating or
-reporting research analysis.
+reporting research analysis. Before using an authorized dataset for paper
+tables, run the read-only provenance preflight with its raw-output manifest:
+
+```bash
+python -m tools.validate_research_dataset \
+  --db path/to/research.db \
+  --manifest path/to/raw-output-manifest.json
+```
 
 ## Limitations
 

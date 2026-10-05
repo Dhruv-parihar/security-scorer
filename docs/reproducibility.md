@@ -1,7 +1,7 @@
 # Reproducibility Guide
 
 **Last updated:** 2026-10-05
-**Code verification:** 245 passed, 1 skipped on Python 3.12 (Windows), using the command below.
+**Code verification:** 249 passed, 1 skipped on Python 3.12 (Windows), using the command below.
 
 ## Scope and evidence boundary
 
@@ -37,7 +37,7 @@ python -m pytest -q -p no:cacheprovider
 
 The repository's `pytest.ini` limits normal discovery to the canonical `tests/`
 suite, so archived handoff copies do not cause duplicate-module errors. The
-current expected result is `245 passed, 1 skipped`. The exact count may
+current expected result is `249 passed, 1 skipped`. The exact count may
 legitimately change with reviewed tests; a failure must be investigated rather
 than hidden by changing the expected count.
 
@@ -67,6 +67,26 @@ longitudinal command compares only consecutive assessments of the same target;
 it never treats missing, errored, not-tested, or non-applicable observations as
 a resolution. Composite-score deltas are withheld when scoring model or weights
 differ.
+
+## Validate provenance before empirical analysis
+
+Before generating paper tables, run the read-only preflight against a copy of
+the authorized database and a raw-output manifest based on
+`docs/authorized-data-manifest.example.json`:
+
+```bash
+python -m tools.validate_research_dataset \
+  --db path/to/research.db \
+  --manifest path/to/raw-output-manifest.json \
+  --json
+```
+
+The validator checks SQLite integrity, current schema controls, authorization
+references, explicit target identifiers, finding evidence, synthetic-fixture
+markers, and raw-artifact hashes. `ready_for_empirical_analysis` can be true
+without a raw manifest, but `ready_for_paper_results` is true only when every
+assessment has a verified raw artifact. The command opens the database read-only
+and does not run any scanner.
 
 ## Generate a non-empirical fixture database
 

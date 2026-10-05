@@ -23,7 +23,7 @@ Preserve the existing architecture and raw files. Verify the historical checkpoi
 | R11 | Add reproducibility commands and automated CI | Complete — exact verified dependency lock, canonical test discovery, and CI workflow recorded |
 | R12 | Review primary literature and write the paper | Partial — evidence-qualified IEEE source draft exists; empirical evidence and final rendering remain pending |
 | R13 | Produce workflow-efficiency report | Complete — measured process facts and limitations recorded |
-| R14 | Verify manuscript and artifact consistency | Partial — code and evidence records rechecked; rendered PDF remains unverified |
+| R14 | Verify manuscript and artifact consistency | Partial — code, evidence records, and an executable data-provenance gate are rechecked; rendered PDF remains unverified |
 | R15 | Commit and publish a reviewable branch and draft PR | Complete — checkpoint 3ff69af pushed to the existing reviewable branch; no pull request was requested or created |
 
 These are new continuation work packages, not a reconstruction of an unavailable original phase plan. Phases 0–4B are retained as historical work.
@@ -49,6 +49,7 @@ These are new continuation work packages, not a reconstruction of an unavailable
 17. Recreated a clean Python 3.12 environment from `requirements-dev.lock` after the schema-v3 change.
 18. Added migration tests that backfill only unique legacy aliases and deliberately leave ambiguous aliases unmapped. Final complete regression in the clean locked environment: 245 passed, 1 Linux-only skip.
 19. Created the selective continuation checkpoint `3ff69af` (`codex: harden research integrity and reproducibility`) and pushed it to `origin/phase/5a-results`. The seven archived audit/phase handoff directories remain untracked and excluded. The connected GitHub API still cannot create a new branch, but the existing tracked branch accepted the authorized Git push. No pull request was created.
+20. Added a read-only dataset-provenance preflight and a raw-output manifest format. It checks schema/integrity, authorization references, explicit target identifiers, evidence presence, synthetic markers, and per-assessment raw-output hashes before a dataset can be marked ready for paper results. Full regression: 249 passed, 1 Linux-only skip.
 
 ## Measurement policy
 

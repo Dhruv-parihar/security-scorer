@@ -29,6 +29,9 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - [x] Continuation schema v3: explicit, case-insensitive scan-identifier
   mappings allow an authorized IP and URL to resolve to one target without
   inference; ambiguous duplicate identifiers are rejected.
+- [x] Continuation data preflight: read-only database and raw-output-manifest
+  validation blocks synthetic, unprovenanced, or incomplete data from paper
+  results.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -49,7 +52,7 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Current continuation verification: 245 passed, 1 skipped.
+- Current continuation verification: 249 passed, 1 skipped.
 - Command: python -m pytest -q -p no:cacheprovider
 
 ## Key Research Properties (all verified by tests)

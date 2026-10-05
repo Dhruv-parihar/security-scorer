@@ -4,4 +4,5 @@ __pycache__/
 reports/
 *.json
 !data/vuln_severity.json
+!docs/authorized-data-manifest.example.json
 research.db
