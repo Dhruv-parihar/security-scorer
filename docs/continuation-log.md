@@ -21,10 +21,10 @@ Preserve the existing architecture and raw files. Verify the historical checkpoi
 | R9 | Characterize scanner validity with controlled tests | Partial — controlled loopback web-heuristic case added; no general accuracy claim |
 | R10 | Generate reproducible synthetic experiments | Complete — deterministic labelled fixture generator and manifest |
 | R11 | Add reproducibility commands and automated CI | Complete — exact verified dependency lock, canonical test discovery, and CI workflow recorded |
-| R12 | Review primary literature and write the paper | Partial — evidence-qualified IEEE source draft exists; empirical evidence and final rendering remain pending |
+| R12 | Review primary literature and write the paper | Partial — evidence-qualified IEEE source and editable Word drafts exist; empirical evidence and final rendering remain pending |
 | R13 | Produce workflow-efficiency report | Complete — measured process facts and limitations recorded |
-| R14 | Verify manuscript and artifact consistency | Partial — code, evidence records, and an executable data-provenance gate are rechecked; rendered PDF remains unverified |
-| R15 | Commit and publish a reviewable branch and draft PR | Complete — checkpoint 3ff69af pushed to the existing reviewable branch; no pull request was requested or created |
+| R14 | Verify manuscript and artifact consistency | Partial — code and evidence records were rechecked; the Word draft passed static structural validation, but rendered PDF and visual page verification remain unavailable in this environment |
+| R15 | Commit and publish a reviewable branch and draft PR | Complete — checkpoints 3ff69af, eea35e7, and 28b88ec were pushed to the existing reviewable branch; no pull request was requested or created |
 
 These are new continuation work packages, not a reconstruction of an unavailable original phase plan. Phases 0–4B are retained as historical work.
 
@@ -50,6 +50,8 @@ These are new continuation work packages, not a reconstruction of an unavailable
 18. Added migration tests that backfill only unique legacy aliases and deliberately leave ambiguous aliases unmapped. Final complete regression in the clean locked environment: 245 passed, 1 Linux-only skip.
 19. Created the selective continuation checkpoint `3ff69af` (`codex: harden research integrity and reproducibility`) and pushed it to `origin/phase/5a-results`. The seven archived audit/phase handoff directories remain untracked and excluded. The connected GitHub API still cannot create a new branch, but the existing tracked branch accepted the authorized Git push. No pull request was created.
 20. Added a read-only dataset-provenance preflight and a raw-output manifest format. It checks schema/integrity, authorization references, explicit target identifiers, evidence presence, synthetic markers, and per-assessment raw-output hashes before a dataset can be marked ready for paper results. Full regression: 249 passed, 1 Linux-only skip.
+21. Created an evidence-qualified IEEE source draft and an editable IEEE-style Word draft. The drafts exclude historical Phase 5A numerical claims and identify empirical results as pending authorized data. The LaTeX compiler and supported DOCX renderer could not perform visual rendering in this environment; the Word file passed static structure checks only.
+22. Pushed the data-provenance preflight checkpoint `28b88ec` to `origin/phase/5a-results`. The local and remote branch heads match; the seven archived handoff directories remain untracked and excluded.
 
 ## Measurement policy
 

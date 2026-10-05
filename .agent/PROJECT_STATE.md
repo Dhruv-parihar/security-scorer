@@ -72,7 +72,8 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
   clearly labelled work-package plan instead.
 - Controlled validation of scanner accuracy and an authorized observational
   dataset. Synthetic fixtures cannot provide these results.
-- Durable Git checkpoint: `3ff69af` was selectively staged and pushed to
-  `origin/phase/5a-results`. The connected GitHub integration still cannot
-  create a new branch, but elevated local Git access permitted the existing
-  tracked branch to be updated. Archived handoff directories remain untracked.
+- Durable Git checkpoints `3ff69af`, `eea35e7`, and `28b88ec` were selectively
+  staged and pushed to `origin/phase/5a-results`. The connected GitHub
+  integration still cannot create a new branch, but elevated local Git access
+  permitted the existing tracked branch to be updated. Archived handoff
+  directories remain untracked.
