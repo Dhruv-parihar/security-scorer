@@ -5,4 +5,5 @@ reports/
 *.json
 !data/vuln_severity.json
 !docs/authorized-data-manifest.example.json
+!docs/controlled-validation-ground-truth.example.json
 research.db

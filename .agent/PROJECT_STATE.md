@@ -32,6 +32,9 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - [x] Continuation data preflight: read-only database and raw-output-manifest
   validation blocks synthetic, unprovenanced, or incomplete data from paper
   results.
+- [x] Continuation R9 support: a read-only controlled-lab evaluator computes
+  confusion matrices only for preflight-approved, independently labelled PASS
+  and FAIL cases with complete ground-truth coverage.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -52,7 +55,7 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Current continuation verification: 249 passed, 1 skipped.
+- Current continuation verification: 254 passed, 1 skipped.
 - Command: python -m pytest -q -p no:cacheprovider
 
 ## Key Research Properties (all verified by tests)
@@ -71,7 +74,9 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - Full original phase plan, if one exists; the continuation log contains a new,
   clearly labelled work-package plan instead.
 - Controlled validation of scanner accuracy and an authorized observational
-  dataset. Synthetic fixtures cannot provide these results.
+  dataset. The controlled-lab evaluator and label format are ready, but no
+  authorized ground-truth experiment has been run. Synthetic fixtures cannot
+  provide these results.
 - Durable Git checkpoints `3ff69af`, `eea35e7`, and `28b88ec` were selectively
   staged and pushed to `origin/phase/5a-results`. The connected GitHub
   integration still cannot create a new branch, but elevated local Git access

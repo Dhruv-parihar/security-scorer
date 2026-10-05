@@ -1,7 +1,7 @@
 # Reproducibility Guide
 
 **Last updated:** 2026-10-05
-**Code verification:** 249 passed, 1 skipped on Python 3.12 (Windows), using the command below.
+**Code verification:** 254 passed, 1 skipped on Python 3.12 (Windows), using the command below.
 
 ## Scope and evidence boundary
 
@@ -37,7 +37,7 @@ python -m pytest -q -p no:cacheprovider
 
 The repository's `pytest.ini` limits normal discovery to the canonical `tests/`
 suite, so archived handoff copies do not cause duplicate-module errors. The
-current expected result is `249 passed, 1 skipped`. The exact count may
+current expected result is `254 passed, 1 skipped`. The exact count may
 legitimately change with reviewed tests; a failure must be investigated rather
 than hidden by changing the expected count.
 
@@ -87,6 +87,27 @@ markers, and raw-artifact hashes. `ready_for_empirical_analysis` can be true
 without a raw manifest, but `ready_for_paper_results` is true only when every
 assessment has a verified raw artifact. The command opens the database read-only
 and does not run any scanner.
+
+## Evaluate a controlled-lab detector protocol
+
+Do not derive detector-accuracy metrics from synthetic fixtures, ordinary
+observational data, or scanner output alone. After the provenance preflight is
+ready for paper results, compare the retained controlled-lab ground truth with
+the corresponding database copy:
+
+```bash
+python -m tools.evaluate_controlled_validation \
+  --db path/to/research.db \
+  --raw-manifest path/to/raw-output-manifest.json \
+  --ground-truth path/to/controlled-ground-truth.json \
+  --json
+```
+
+Use `docs/controlled-validation-ground-truth.example.json` as the format
+reference. The evaluator calculates a confusion matrix and derived metrics only
+when the database and raw-output hashes are verified, each PASS/FAIL observation
+has exactly one independently justified label, and no label is missing. It
+opens the database read-only and never runs a scanner.
 
 ## Generate a non-empirical fixture database
 

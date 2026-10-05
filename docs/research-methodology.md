@@ -1,5 +1,5 @@
 # Research Methodology
-**Version:** 1.1
+**Version:** 1.2
 **Last updated:** 2026-10-05
 
 ---
@@ -122,10 +122,10 @@ to be empirically optimal — the weights were set by expert judgment.
 - Web Application: 0.35
 
 **Composite formula:**
-```
-C = Σ(wᵢ × Sᵢ) / Σwᵢ
-```
-where the sum is over layers actually assessed (weights re-normalized).
+The composite is the weight-normalized mean of the evaluated layer scores. The
+calculation includes only layers with a valid score, no layer-level error, and
+a positive configured weight; weights are re-normalized across the included
+layers.
 
 **Score storage:**
 Scores are stored as `score_snapshot` records alongside the model ID and
@@ -157,6 +157,24 @@ multiple snapshots have the same timestamp, an assessment-local
 `snapshot_sequence` provides deterministic ordering. It evaluates mathematical
 robustness only and does not calibrate weights empirically.
 
+### 5.4 Controlled Detector Validation
+
+Detector-accuracy metrics require a separate controlled-lab protocol. The
+protocol must establish each condition independently of the scanner, retain a
+manual-inspection or configuration evidence reference, and bind its labels to
+the exact SHA-256 hash of the tested database. The supplied
+`docs/controlled-validation-ground-truth.example.json` describes this label
+format.
+
+Before sensitivity, specificity, precision, or confusion-matrix results can be
+reported, the database must pass the raw-output provenance preflight and then
+pass `tools.evaluate_controlled_validation`. The evaluator is read-only. It
+requires one unique PASS or FAIL observation for every labelled case, rejects
+unlabelled evaluated observations, and withholds a ready result when the
+database hash, raw-output coverage, or lab labels are incomplete. It does not
+create labels or validate a detector without independently established ground
+truth.
+
 ## 6. Statistical Claims
 
 - **Do not claim causation** unless the research design explicitly supports
@@ -175,6 +193,10 @@ Every assessment must record:
 - `schema_version` — database schema version at assessment time
 - `scoring_model_id` + `scoring_model_ver` — in score snapshots
 - Assessment date/time
+
+Controlled-lab validation must additionally record a protocol identifier,
+ground-truth rationale and evidence reference for every case, and the
+SHA-256 hash of the database evaluated.
 
 Research outputs (tables, figures, statistics) must reference the
 dataset used, including date range of assessments and tool versions.

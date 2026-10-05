@@ -11,14 +11,14 @@ Preserve the existing architecture and raw files. Verify the historical checkpoi
 | Package | Purpose | State |
 |---|---|---|
 | R1 | Verify local and remote history | Complete |
-| R2 | Establish executable regression baseline | Complete — 194 passed, 1 skipped before repairs; 245 passed, 1 skipped after repairs |
+| R2 | Establish executable regression baseline | Complete — 194 passed, 1 skipped before repairs; 254 passed, 1 skipped after repairs |
 | R3 | Audit legacy Phase 5A artifacts and provenance | Complete — historical fixtures are unverified and cannot support empirical claims |
 | R4 | Check applicability through scoring and persistence | Complete |
 | R5 | Validate finding denominators and duplicate handling | Complete |
 | R6 | Validate sensitivity ordering and snapshot selection | Complete |
 | R7 | Version shared severity configuration | Complete |
 | R8 | Add comparable same-target longitudinal analysis | Complete |
-| R9 | Characterize scanner validity with controlled tests | Partial — controlled loopback web-heuristic case added; no general accuracy claim |
+| R9 | Characterize scanner validity with controlled tests | Partial — controlled loopback case, ground-truth protocol format, and read-only metric evaluator added; no authorized experiment or general accuracy claim |
 | R10 | Generate reproducible synthetic experiments | Complete — deterministic labelled fixture generator and manifest |
 | R11 | Add reproducibility commands and automated CI | Complete — exact verified dependency lock, canonical test discovery, and CI workflow recorded |
 | R12 | Review primary literature and write the paper | Partial — evidence-qualified IEEE source and editable Word drafts exist; empirical evidence and final rendering remain pending |
@@ -52,6 +52,7 @@ These are new continuation work packages, not a reconstruction of an unavailable
 20. Added a read-only dataset-provenance preflight and a raw-output manifest format. It checks schema/integrity, authorization references, explicit target identifiers, evidence presence, synthetic markers, and per-assessment raw-output hashes before a dataset can be marked ready for paper results. Full regression: 249 passed, 1 Linux-only skip.
 21. Created an evidence-qualified IEEE source draft and an editable IEEE-style Word draft. The drafts exclude historical Phase 5A numerical claims and identify empirical results as pending authorized data. The LaTeX compiler and supported DOCX renderer could not perform visual rendering in this environment; the Word file passed static structure checks only.
 22. Pushed the data-provenance preflight checkpoint `28b88ec` to `origin/phase/5a-results`. The local and remote branch heads match; the seven archived handoff directories remain untracked and excluded.
+23. Added a read-only controlled-lab evaluation gate. It requires a provenance-approved database, hash-bound independent ground-truth labels, complete PASS/FAIL coverage, and unique observations before reporting a confusion matrix. Five evaluator tests passed; the full locked-environment suite passed with 254 tests and one expected Linux-only skip. The desktop test host required a project-scoped Python temporary directory because its default temporary path was unavailable; no project source behavior was changed.
 
 ## Measurement policy
 

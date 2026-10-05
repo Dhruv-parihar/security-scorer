@@ -1,0 +1,15 @@
+{
+  "label": "CONTROLLED_LAB_GROUND_TRUTH",
+  "protocol_id": "controlled-lab-validation-YYYYMMDD",
+  "dataset_sha256": "sha256 of the preflight-approved research.db file",
+  "cases": [
+    {
+      "assessment_id": "assessment UUID from the database",
+      "layer": "WEB",
+      "check_id": "header_content_security_policy",
+      "ground_truth_status": "FAIL",
+      "rationale": "The controlled lab was configured without this response header and manually inspected before the assessment.",
+      "evidence_ref": "relative reference to the controlled-lab configuration or retained manual inspection record"
+    }
+  ]
+}
