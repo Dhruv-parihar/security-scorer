@@ -35,6 +35,9 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - [x] Continuation R9 support: a read-only controlled-lab evaluator computes
   confusion matrices only for preflight-approved, independently labelled PASS
   and FAIL cases with complete ground-truth coverage.
+- [x] Continuation R14 pre-empirical review: a requirement-by-requirement
+  audit records the verified safeguards, artifact limits, and exact inputs
+  needed before an empirical-completion claim.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
