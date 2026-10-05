@@ -35,6 +35,12 @@ empirical use. The controlled-loopback web test and controlled-lab evaluator
 exercise software behavior and validation rules; neither supplies a measured
 false-positive rate, false-negative rate, or field-effectiveness result.
 
+A read-only Desktop inventory found `scorer.zip` and `scorer (2).zip`. Each
+archive lists one folder and 15 PNG screenshots; neither contains a SQLite
+database, raw scanner output, or ground-truth label file. The archive bytes are
+not identical, so they are retained as separate screenshot archives, but their
+listed contents cannot establish empirical provenance or reproduce a result.
+
 The available environment could not compile the LaTeX draft or visually render
 the Word draft because its supported rendering components were unavailable.
 The Word file was statically checked for structure, table presence, two-column

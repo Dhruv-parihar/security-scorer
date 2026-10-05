@@ -56,6 +56,7 @@ These are new continuation work packages, not a reconstruction of an unavailable
 24. Performed the pre-empirical final review. It verified the historical Phase 5A commit contains only `.gitattributes`, the current branch is tracked at the pushed checkpoint, and the data and controlled-lab gates are implemented. The review records that empirical data, ground truth, author metadata, and visual document rendering remain necessary before any empirical-completion claim.
 25. Enforced authorization consistency at assessment creation and pushed it as `9a48a70`: an assessment must now use exactly the authorization status of its parent target, rather than allowing a mismatch for later preflight detection. Database tests passed 46/46; the full locked-environment suite passed with 255 tests and one expected Linux-only skip.
 26. Tightened the active-scan authorization gate and pushed it as `cf5525c`: a target with a valid status but no `authorization_ref` is blocked before network or web scanning. Focused authorization, CLI, and Flask tests passed 68/68 with one expected Linux-only skip; the full locked-environment suite passed with 256 tests and one expected Linux-only skip.
+27. Performed a read-only inventory of the supplied Desktop location. `scorer.zip` and `scorer (2).zip` each list only a folder and 15 PNG screenshots; neither contains a database, raw scanner output, or controlled-lab labels. The files are retained untouched and excluded as empirical evidence.
 
 ## Measurement policy
 
