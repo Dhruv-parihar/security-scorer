@@ -7,6 +7,8 @@ record in the research database before proceeding.
 Rules:
 - Authorization is NEVER inferred from an IP address or URL alone.
 - Authorization is NEVER granted automatically.
+- An active scan requires a non-empty authorization reference, not only a
+  status label.
 - If no matching record exists, scanning is BLOCKED with a clear error.
 - The authorization check is non-invasive: it only reads from the DB.
 - Passive analysis (OS hardening on localhost) does not require a
@@ -43,6 +45,8 @@ def require_authorization(conn, identifier, scope=None):
     decision or inferred to refer to the same target.
     Authorization_status must be one of:
         OWNED, LAB, EXPLICITLY_AUTHORIZED, CONSENTED_RESEARCH
+    authorization_ref must be a non-empty local reference to the relevant
+    approval, consent, ownership record, or lab protocol.
     """
     if not identifier or not str(identifier).strip():
         raise AuthorizationError(
@@ -76,6 +80,13 @@ def require_authorization(conn, identifier, scope=None):
             f"Scanning blocked: target '{identifier}' has authorization_status "
             f"'{row['authorization_status']}' which is not a valid active-scan "
             f"authorization. Valid statuses: {', '.join(valid_statuses)}."
+        )
+
+    if row["authorization_ref"] is None or not str(row["authorization_ref"]).strip():
+        raise AuthorizationError(
+            f"Scanning blocked: target '{identifier}' has no authorization_ref. "
+            "Record the applicable approval, consent, ownership, or lab "
+            "protocol reference before scanning."
         )
 
     return row["target_id"]

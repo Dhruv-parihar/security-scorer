@@ -30,7 +30,8 @@ investigate:
 - A `target` record must exist in the research database
 - `authorization_status` must be set to one of:
   `OWNED`, `LAB`, `EXPLICITLY_AUTHORIZED`, `CONSENTED_RESEARCH`
-- `authorization_ref` should reference the authorization document/ticket
+- `authorization_ref` must reference the authorization document, ticket,
+  ownership record, consent record, or lab protocol before active scanning
 - Every active scan input must have an explicit `target_identifier` mapping to
   that target; an IP, hostname, and URL are never assumed to refer to the same
   system solely because they look related

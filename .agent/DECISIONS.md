@@ -216,3 +216,16 @@ database. Enforcing the invariant at persistence time keeps authorization
 provenance coherent without inferring a stronger or weaker authorization.
 **Tests:** `test_assessment_authorization_must_match_target` confirms the
 rejected write leaves no assessment record.
+
+## D-025 - Active scans require an authorization reference
+**Date:** 2026-10-05
+**Decision:** `require_authorization()` rejects a target whose authorization
+status is valid but whose `authorization_ref` is empty. Target creation remains
+permissive so incomplete records can be prepared, but no network or web scan
+may use them.
+**Rationale:** A status label alone does not establish traceable permission.
+Requiring a local reference at the active-scan boundary aligns the runtime
+guard with the provenance preflight and prevents data collection before the
+supporting authorization is recorded.
+**Tests:** `test_target_without_authorization_reference_is_blocked` verifies
+both raising and non-raising authorization paths block the target.

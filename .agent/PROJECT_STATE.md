@@ -40,6 +40,9 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
   needed before an empirical-completion claim.
 - [x] Continuation authorization persistence: assessment creation rejects a
   status that differs from the parent target authorization record.
+- [x] Continuation active-scan authorization: network and web scanning require
+  both a valid target authorization status and a non-empty authorization
+  reference.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -60,7 +63,7 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Current continuation verification: 255 passed, 1 skipped.
+- Current continuation verification: 256 passed, 1 skipped.
 - Command: python -m pytest -q -p no:cacheprovider
 
 ## Key Research Properties (all verified by tests)

@@ -1,7 +1,7 @@
 # Reproducibility Guide
 
 **Last updated:** 2026-10-05
-**Code verification:** 255 passed, 1 skipped on Python 3.12 (Windows), using the command below.
+**Code verification:** 256 passed, 1 skipped on Python 3.12 (Windows), using the command below.
 
 ## Scope and evidence boundary
 
@@ -37,7 +37,7 @@ python -m pytest -q -p no:cacheprovider
 
 The repository's `pytest.ini` limits normal discovery to the canonical `tests/`
 suite, so archived handoff copies do not cause duplicate-module errors. The
-current expected result is `255 passed, 1 skipped`. The exact count may
+current expected result is `256 passed, 1 skipped`. The exact count may
 legitimately change with reviewed tests; a failure must be investigated rather
 than hidden by changing the expected count.
 

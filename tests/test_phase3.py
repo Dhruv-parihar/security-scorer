@@ -46,7 +46,8 @@ def lab_target_id(db):
     return create_target(
         db, alias="192.168.56.102", target_type="lab_vm",
         environment="lab", authorization_status="LAB",
-        os_family="linux", os_name="Metasploitable 2"
+        os_family="linux", os_name="Metasploitable 2",
+        authorization_ref="LAB-PROTOCOL-TEST-001",
     )
 
 
@@ -55,7 +56,7 @@ def web_target_id(db):
     return create_target(
         db, alias="http://192.168.56.102/dvwa/vulnerabilities/sqli/?id=1",
         target_type="web_app", environment="lab",
-        authorization_status="LAB"
+        authorization_status="LAB", authorization_ref="LAB-PROTOCOL-TEST-001",
     )
 
 

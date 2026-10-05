@@ -75,7 +75,7 @@ assessments and score snapshots.
 | deployment_type | TEXT | vm / bare_metal / container / cloud |
 | technology_notes | TEXT | Free-text technology stack notes |
 | authorization_status | TEXT | OWNED / LAB / EXPLICITLY_AUTHORIZED / CONSENTED_RESEARCH |
-| authorization_ref | TEXT | Reference to authorization document/ticket |
+| authorization_ref | TEXT | Reference to authorization document/ticket; non-empty before active scanning |
 | created_at | TEXT | ISO-8601 |
 | notes | TEXT | Free-text notes |
 

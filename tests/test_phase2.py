@@ -50,7 +50,8 @@ def lab_target(db):
     tid = create_target(
         db, alias="192.168.56.102", target_type="lab_vm",
         environment="lab", authorization_status="LAB",
-        os_family="linux", os_name="Metasploitable 2"
+        os_family="linux", os_name="Metasploitable 2",
+        authorization_ref="LAB-PROTOCOL-TEST-001",
     )
     return tid
 
@@ -60,7 +61,7 @@ def web_target(db):
     tid = create_target(
         db, alias="http://192.168.56.102/dvwa/vulnerabilities/sqli/?id=1",
         target_type="web_app", environment="lab",
-        authorization_status="LAB"
+        authorization_status="LAB", authorization_ref="LAB-PROTOCOL-TEST-001",
     )
     return tid
 
@@ -328,11 +329,25 @@ class TestR4Authorization:
         assert tid is None
         assert "no authorization record" in msg.lower()
 
+    def test_target_without_authorization_reference_is_blocked(self, db):
+        create_target(
+            db, "lab-without-reference", "lab_vm", "lab", "LAB"
+        )
+        with pytest.raises(AuthorizationError, match="authorization_ref"):
+            require_authorization(db, "lab-without-reference")
+        authorized, target_id, message = check_authorization(
+            db, "lab-without-reference"
+        )
+        assert authorized is False
+        assert target_id is None
+        assert "authorization_ref" in message
+
     def test_all_valid_auth_statuses_permit_scanning(self, db):
         from db.schema import AUTH_STATUSES
         for status in AUTH_STATUSES:
             tid = create_target(db, f"target-{status}", "lab_vm",
-                                "lab", status)
+                                "lab", status,
+                                authorization_ref=f"AUTH-REF-{status}")
             result_tid = require_authorization(db, f"target-{status}")
             assert result_tid == tid
 

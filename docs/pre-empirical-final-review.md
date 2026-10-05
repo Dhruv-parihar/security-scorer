@@ -18,7 +18,7 @@ a completed empirical study.
 |---|---|---|---|
 | Verify the historical Phase 5A claim | Commit `e1b418f` changes only `.gitattributes`, despite its empirical-results message | Historical claim excluded | Locate original authorized database and raw outputs if they exist |
 | Preserve non-authoritative handoff material | Seven `audit-files` and phase directories remain untracked | Preserved and excluded | Do not use them as evidence without provenance review |
-| Test the implementation | Locked Python 3.12 run: 255 passed, 1 expected Linux-only skip | Verified software behavior | Re-run after any reviewed source or dependency change |
+| Test the implementation | Locked Python 3.12 run: 256 passed, 1 expected Linux-only skip | Verified software behavior | Re-run after any reviewed source or dependency change |
 | Keep observations distinct from derived claims | Schema, analysis modules, and tests distinguish PASS/FAIL from non-evaluated states | Verified in code tests | Use the same semantics in collected data |
 | Verify data provenance before paper results | `tools.validate_research_dataset` checks integrity, authorization, target identifiers, evidence, synthetic markers, and raw-output hashes | Gate implemented and tested | Run against an authorized database and retained raw-output manifest |
 | Validate detector accuracy | `tools.evaluate_controlled_validation` requires preflight approval, database-hash-bound labels, complete coverage, and unique observations | Gate implemented and tested | Conduct an authorized controlled-lab protocol with independent ground truth |
