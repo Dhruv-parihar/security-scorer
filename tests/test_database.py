@@ -24,7 +24,7 @@ from db.schema import (
 from db.repository import (
     create_target, get_target, list_targets, add_target_identifier,
     list_target_identifiers,
-    create_assessment, get_assessment, close_assessment,
+    create_assessment, get_assessment, list_assessments, close_assessment,
     create_finding, get_findings, get_findings_by_status,
     get_finding_prevalence,
     create_score_snapshot, get_score_snapshots,
@@ -248,6 +248,12 @@ class TestAssessment:
         conn, _ = db
         with pytest.raises(sqlite3.IntegrityError):
             create_assessment(conn, "nonexistent-uuid", "ALL", "LAB")
+
+    def test_assessment_authorization_must_match_target(self, db, target_id):
+        conn, _ = db
+        with pytest.raises(ValueError, match="exactly match"):
+            create_assessment(conn, target_id, "ALL", "OWNED")
+        assert list_assessments(conn, target_id) == []
 
     def test_close_assessment_sets_end_time(self, db, assessment_id):
         conn, _ = db

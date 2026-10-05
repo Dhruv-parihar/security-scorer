@@ -49,11 +49,13 @@ alias.
 
 ### 3.1 Pre-Assessment
 1. Verify target authorization record exists in database
-2. Record assessment start time
-3. Document tool version, methodology version, schema version, detector/check
+2. Create the assessment with exactly the authorization status recorded for
+   that target; authorization labels are not a stronger-or-weaker hierarchy
+3. Record assessment start time
+4. Document tool version, methodology version, schema version, detector/check
    version, and scoring-configuration version
-4. Record scope (OS / NETWORK / WEB / ALL)
-5. Verify every active scan input is explicitly mapped to the intended target
+5. Record scope (OS / NETWORK / WEB / ALL)
+6. Verify every active scan input is explicitly mapped to the intended target
 
 ### 3.2 During Assessment
 - Each check produces exactly one finding with an explicit status

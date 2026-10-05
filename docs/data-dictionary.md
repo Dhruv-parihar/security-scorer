@@ -114,7 +114,7 @@ One assessment run against one target at one point in time.
 | methodology_version | TEXT | e.g. "1.0" |
 | schema_version | INTEGER | DB schema version at assessment time |
 | scope | TEXT | OS / NETWORK / WEB / ALL / custom |
-| authorization_status | TEXT | Must be valid AUTH_STATUS |
+| authorization_status | TEXT | Must be valid AUTH_STATUS and exactly match the parent target authorization record |
 | assessor | TEXT | Anonymized assessor identifier |
 | notes | TEXT | Free-text notes |
 

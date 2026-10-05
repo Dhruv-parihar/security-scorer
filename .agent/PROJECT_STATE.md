@@ -38,6 +38,8 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - [x] Continuation R14 pre-empirical review: a requirement-by-requirement
   audit records the verified safeguards, artifact limits, and exact inputs
   needed before an empirical-completion claim.
+- [x] Continuation authorization persistence: assessment creation rejects a
+  status that differs from the parent target authorization record.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -58,7 +60,7 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Current continuation verification: 254 passed, 1 skipped.
+- Current continuation verification: 255 passed, 1 skipped.
 - Command: python -m pytest -q -p no:cacheprovider
 
 ## Key Research Properties (all verified by tests)

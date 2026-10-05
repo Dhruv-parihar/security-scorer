@@ -132,10 +132,16 @@ def create_assessment(conn, target_id, scope, authorization_status,
     Create a new assessment record for a target.
     Returns assessment_id (UUID string).
     target_id must already exist.
-    authorization_status must match or be a subset of target's auth.
+    authorization_status must exactly match the target authorization record.
     """
     assert authorization_status in AUTH_STATUSES, \
         f"Invalid authorization_status: {authorization_status}"
+    target = get_target(conn, target_id)
+    if target is not None and target["authorization_status"] != authorization_status:
+        raise ValueError(
+            "Assessment authorization_status must exactly match the target "
+            f"authorization_status ({target['authorization_status']!r})."
+        )
     assessment_id = _uuid()
     now = _now()
     conn.execute("""

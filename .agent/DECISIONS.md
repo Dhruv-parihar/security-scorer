@@ -203,3 +203,16 @@ guessing from their textual form.
 **Tests:** database identifier creation and duplicate rejection, authorization
 resolution through a secondary identifier, Flask route wiring, and a persisted
 same-target IP-plus-URL composite.
+
+## D-024 - Assessment authorization must equal target authorization
+**Date:** 2026-10-05
+**Decision:** `create_assessment()` rejects a valid but mismatched
+`authorization_status` before a record is written. An assessment inherits the
+authorization status of its parent target exactly; statuses are not a ranked
+permission hierarchy.
+**Rationale:** Allowing a mismatched status and discovering it only during a
+later provenance preflight permits invalid research records to enter the
+database. Enforcing the invariant at persistence time keeps authorization
+provenance coherent without inferring a stronger or weaker authorization.
+**Tests:** `test_assessment_authorization_must_match_target` confirms the
+rejected write leaves no assessment record.

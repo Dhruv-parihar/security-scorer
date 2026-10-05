@@ -11,7 +11,7 @@ Preserve the existing architecture and raw files. Verify the historical checkpoi
 | Package | Purpose | State |
 |---|---|---|
 | R1 | Verify local and remote history | Complete |
-| R2 | Establish executable regression baseline | Complete — 194 passed, 1 skipped before repairs; 254 passed, 1 skipped after repairs |
+| R2 | Establish executable regression baseline | Complete — 194 passed, 1 skipped before repairs; 255 passed, 1 skipped after repairs |
 | R3 | Audit legacy Phase 5A artifacts and provenance | Complete — historical fixtures are unverified and cannot support empirical claims |
 | R4 | Check applicability through scoring and persistence | Complete |
 | R5 | Validate finding denominators and duplicate handling | Complete |
@@ -54,6 +54,7 @@ These are new continuation work packages, not a reconstruction of an unavailable
 22. Pushed the data-provenance preflight checkpoint `28b88ec` to `origin/phase/5a-results`. The local and remote branch heads match; the seven archived handoff directories remain untracked and excluded.
 23. Added the read-only controlled-lab evaluation gate and pushed it as `bc5096a`. It requires a provenance-approved database, hash-bound independent ground-truth labels, complete PASS/FAIL coverage, and unique observations before reporting a confusion matrix. Five evaluator tests passed; the full locked-environment suite passed with 254 tests and one expected Linux-only skip. The desktop test host required a project-scoped Python temporary directory because its default temporary path was unavailable; no project source behavior was changed.
 24. Performed the pre-empirical final review. It verified the historical Phase 5A commit contains only `.gitattributes`, the current branch is tracked at the pushed checkpoint, and the data and controlled-lab gates are implemented. The review records that empirical data, ground truth, author metadata, and visual document rendering remain necessary before any empirical-completion claim.
+25. Enforced authorization consistency at assessment creation: an assessment must now use exactly the authorization status of its parent target, rather than allowing a mismatch for later preflight detection. Database tests passed 46/46; the full locked-environment suite passed with 255 tests and one expected Linux-only skip.
 
 ## Measurement policy
 
