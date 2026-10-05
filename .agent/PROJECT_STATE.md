@@ -77,8 +77,8 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
   dataset. The controlled-lab evaluator and label format are ready, but no
   authorized ground-truth experiment has been run. Synthetic fixtures cannot
   provide these results.
-- Durable Git checkpoints `3ff69af`, `eea35e7`, and `28b88ec` were selectively
-  staged and pushed to `origin/phase/5a-results`. The connected GitHub
-  integration still cannot create a new branch, but elevated local Git access
-  permitted the existing tracked branch to be updated. Archived handoff
+- Durable Git checkpoints `3ff69af`, `eea35e7`, `28b88ec`, and `bc5096a` were
+  selectively staged and pushed to `origin/phase/5a-results`. The connected
+  GitHub integration still cannot create a new branch, but elevated local Git
+  access permitted the existing tracked branch to be updated. Archived handoff
   directories remain untracked.
