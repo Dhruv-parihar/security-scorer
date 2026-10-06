@@ -89,7 +89,12 @@ def _infer_severity(finding, status):
 
 
 def _extract_evidence(finding, layer_key):
-    """Build an evidence string from available finding fields."""
+    """Return explicit evidence when supplied, otherwise derive safe metadata."""
+    explicit = finding.get("evidence")
+    if isinstance(explicit, str) and explicit.strip():
+        return explicit.strip()
+    if isinstance(explicit, (dict, list)):
+        return json.dumps(explicit, sort_keys=True)
     parts = {}
     if layer_key == "network":
         for k in ("port", "service", "version", "matched_signature"):

@@ -121,6 +121,25 @@ or report its output as empirical.
     python -m analysis.scoring_sensitivity --db path/to/synthetic.db --json
     python -m analysis.longitudinal --db path/to/synthetic.db --json
 
+
+## Reconstruct the retained legacy Phase 5A case study
+
+The archived Phase 5A handoff describes six legacy case records but does not
+retain the original database, raw scanner outputs, authorization references, or
+a same-target before/after Parrot assessment. The reconstruction command makes
+the historical calculations rerunnable while labelling every generated record
+as non-empirical. It does not scan a target and refuses to overwrite an output
+directory.
+
+    python -m tools.generate_phase5a_reconstruction --output-dir artifacts/phase5a-reconstructed
+
+The generated provenance preflight is expected to fail for paper-result
+readiness. That failure is evidence that the output remains a reconstructed
+case study, not an authorized empirical dataset. Do not remove its marker or
+use the output for prevalence, accuracy, authorization, or remediation-effect
+claims.
+
+
 ## Data release checklist
 
 Before sharing a dataset or paper supplement:

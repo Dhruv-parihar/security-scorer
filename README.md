@@ -31,6 +31,7 @@ disconnected reports.
 - [`docs/05-flask-ui.md`](./docs/05-flask-ui.md) — Flask web UI walkthrough
 - [`docs/research-methodology.md`](./docs/research-methodology.md) — ethics, evidence, and analysis rules
 - [`docs/reproducibility.md`](./docs/reproducibility.md) — test and analysis reproduction guide
+- [`tools/generate_phase5a_reconstruction.py`](./tools/generate_phase5a_reconstruction.py) — labelled reconstruction of the retained legacy Phase 5A calculations
 - [`requirements-dev.lock`](./requirements-dev.lock) — reviewed dependency set for repeatable test verification
 
 ## Architecture

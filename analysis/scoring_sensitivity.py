@@ -328,6 +328,10 @@ def run_full_analysis(
             "analysis_version": ANALYSIS_VERSION,
             "analysis_id": ANALYSIS_ID,
             "timestamp": datetime.now(timezone.utc).isoformat(),
+            "score_precision": {
+                "production_composite": "nearest integer",
+                "sensitivity_composite": "weighted mean rounded to four decimal places",
+            },
             "assessment_count": 0,
             "scenario_count": len(scenarios),
             "empirical_limitation": (
@@ -357,6 +361,10 @@ def run_full_analysis(
         "analysis_version": ANALYSIS_VERSION,
         "analysis_id": ANALYSIS_ID,
         "timestamp": datetime.now(timezone.utc).isoformat(),
+        "score_precision": {
+            "production_composite": "nearest integer",
+            "sensitivity_composite": "weighted mean rounded to four decimal places",
+        },
         "baseline_weights": BASELINE_WEIGHTS,
         "assessment_count": len(assessments),
         "scenario_count": len(scenarios),

@@ -17,6 +17,8 @@ from db.schema import AUTH_STATUSES, SCHEMA_VERSION
 
 VALIDATOR_VERSION = "1.0.0"
 SYNTHETIC_LABEL = "SYNTHETIC_FIXTURE_NOT_EMPIRICAL"
+RECONSTRUCTED_LABEL = "RECONSTRUCTED_LEGACY_CASE_STUDY_NOT_EMPIRICALLY_VERIFIED"
+NON_EMPIRICAL_MARKERS = (SYNTHETIC_LABEL, RECONSTRUCTED_LABEL)
 REQUIRED_TABLES = {
     "schema_migrations",
     "target",
@@ -96,18 +98,21 @@ def _add_database_checks(conn, database_path: Path, checks):
         count=counts["score_snapshot"],
     ))
 
-    synthetic_count = sum((
-        conn.execute("SELECT COUNT(*) FROM target WHERE COALESCE(notes, '') LIKE ?", (f"%{SYNTHETIC_LABEL}%",)).fetchone()[0],
-        conn.execute("SELECT COUNT(*) FROM assessment WHERE COALESCE(notes, '') LIKE ?", (f"%{SYNTHETIC_LABEL}%",)).fetchone()[0],
-        conn.execute("SELECT COUNT(*) FROM finding WHERE COALESCE(detector_notes, '') LIKE ?", (f"%{SYNTHETIC_LABEL}%",)).fetchone()[0],
-        conn.execute("SELECT COUNT(*) FROM score_snapshot WHERE COALESCE(notes, '') LIKE ? OR COALESCE(model_metadata, '') LIKE ?", (f"%{SYNTHETIC_LABEL}%", f"%{SYNTHETIC_LABEL}%")).fetchone()[0],
-    ))
+    non_empirical_count = 0
+    for marker in NON_EMPIRICAL_MARKERS:
+        wildcard = f"%{marker}%"
+        non_empirical_count += sum((
+            conn.execute("SELECT COUNT(*) FROM target WHERE COALESCE(notes, '') LIKE ?", (wildcard,)).fetchone()[0],
+            conn.execute("SELECT COUNT(*) FROM assessment WHERE COALESCE(notes, '') LIKE ?", (wildcard,)).fetchone()[0],
+            conn.execute("SELECT COUNT(*) FROM finding WHERE COALESCE(detector_notes, '') LIKE ?", (wildcard,)).fetchone()[0],
+            conn.execute("SELECT COUNT(*) FROM score_snapshot WHERE COALESCE(notes, '') LIKE ? OR COALESCE(model_metadata, '') LIKE ?", (wildcard, wildcard)).fetchone()[0],
+        ))
     checks.append(_check(
         "synthetic_data",
-        "ERROR" if synthetic_count else "PASS",
-        "Synthetic fixture markers were found; this database cannot support empirical claims."
-        if synthetic_count else "No synthetic fixture markers were found.",
-        marked_records=synthetic_count,
+        "ERROR" if non_empirical_count else "PASS",
+        "Non-empirical fixture or reconstruction markers were found; this database cannot support empirical claims."
+        if non_empirical_count else "No non-empirical fixture or reconstruction markers were found.",
+        marked_records=non_empirical_count,
     ))
 
     invalid_statuses = conn.execute(

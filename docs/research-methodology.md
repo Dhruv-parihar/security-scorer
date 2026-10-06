@@ -130,6 +130,13 @@ calculation includes only layers with a valid score, no layer-level error, and
 a positive configured weight; weights are re-normalized across the included
 layers.
 
+**Score precision:** Production composite scores are reported as nearest
+integers. Sensitivity analysis retains the weighted mean to four decimal places
+to show mathematical effects of alternative weights. A sensitivity baseline of
+32.5, for example, corresponds to a production score displayed as 32; the two
+values must be labelled by their precision and never mixed in one table.
+
+
 **Score storage:**
 Scores are stored as `score_snapshot` records alongside the model ID and
 weights used. This allows future models to be compared against the current
