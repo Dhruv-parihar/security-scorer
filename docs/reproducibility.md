@@ -1,7 +1,7 @@
 # Reproducibility Guide
 
-**Last updated:** 2026-10-05
-**Code verification:** 256 passed, 1 skipped on Python 3.12 (Windows), using the command below.
+**Last updated:** 2026-10-10
+**Code verification:** 259 passed, 1 expected Linux-only skip on Python 3.12.14 (Windows), using the command below and the reviewed dependency lock.
 
 ## Scope and evidence boundary
 
@@ -37,9 +37,17 @@ python -m pytest -q -p no:cacheprovider
 
 The repository's `pytest.ini` limits normal discovery to the canonical `tests/`
 suite, so archived handoff copies do not cause duplicate-module errors. The
-current expected result is `256 passed, 1 skipped`. The exact count may
+latest verified result is `259 passed, 1 skipped`. The exact count may
 legitimately change with reviewed tests; a failure must be investigated rather
 than hidden by changing the expected count.
+
+On 2026-10-10, the installed package versions in the existing Python 3.12.14
+virtual environment were checked against `requirements-dev.lock` and matched.
+The default Windows pytest temporary directory was inaccessible to that
+execution session, so the successful rerun supplied `--basetemp` pointing to a
+new, isolated writable directory outside the repository. If your default temp
+path is writable, the commands above need no extra option; otherwise choose a
+new empty writable directory for `--basetemp` (pytest clears that directory).
 
 The one skipped test is explicitly Linux-only (`tests/test_phase2.py`), so it
 is expected on the verified Windows environment rather than a hidden failure.

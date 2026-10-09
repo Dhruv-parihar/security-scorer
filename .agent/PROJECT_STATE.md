@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-**Last updated:** 2026-10-05
+**Last updated:** 2026-10-10
 **Updated by:** Continuation audit
 **Current branch:** phase/5a-results
 **Baseline branch:** main @ 6edab0a
@@ -63,7 +63,11 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Current continuation verification: 256 passed, 1 skipped.
+- Current continuation verification: 259 passed, 1 expected Linux-only skip.
+- Fresh verification on 2026-10-10 used Python 3.12.14 on Windows; all
+  installed packages matched `requirements-dev.lock`. Pytest used a fresh,
+  writable workspace temp directory because the default Windows temp path was
+  inaccessible to this execution session.
 - Command: python -m pytest -q -p no:cacheprovider
 
 ## Key Research Properties (all verified by tests)
