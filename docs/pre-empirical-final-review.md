@@ -1,6 +1,6 @@
 # Pre-Empirical Final Review
 
-**Review date:** 2026-10-05
+**Review date:** 2026-10-10
 **Review scope:** The `phase/5a-results` working tree and its recorded remote
 checkpoints. This review does not treat historical handoff files, synthetic
 fixtures, or a passing test suite as empirical observations.
@@ -18,14 +18,15 @@ a completed empirical study.
 |---|---|---|---|
 | Verify the historical Phase 5A claim | Commit `e1b418f` changes only `.gitattributes`, despite its empirical-results message | Historical claim excluded | Locate original authorized database and raw outputs if they exist |
 | Preserve non-authoritative handoff material | Seven `audit-files` and phase directories remain untracked | Preserved and excluded | Do not use them as evidence without provenance review |
-| Test the implementation | Locked Python 3.12 run: 256 passed, 1 expected Linux-only skip | Verified software behavior | Re-run after any reviewed source or dependency change |
+| Test the implementation | Locked Python 3.12.14 / Windows run at commit `34b7f3d`: 268 passed, 1 expected Linux-only skip | Verified software behavior, including the approved score, TLS, and dashboard changes | Repeat on the final authorized dataset/software release |
 | Keep observations distinct from derived claims | Schema, analysis modules, and tests distinguish PASS/FAIL from non-evaluated states | Verified in code tests | Use the same semantics in collected data |
 | Verify data provenance before paper results | `tools.validate_research_dataset` checks integrity, authorization, target identifiers, evidence, synthetic markers, and raw-output hashes | Gate implemented and tested | Run against an authorized database and retained raw-output manifest |
 | Validate detector accuracy | `tools.evaluate_controlled_validation` requires preflight approval, database-hash-bound labels, complete coverage, and unique observations | Gate implemented and tested | Conduct an authorized controlled-lab protocol with independent ground truth |
 | Reproduce analysis | Dependency lock, canonical test discovery, read-only analysis commands, and CI workflow are present | Reproducibility package prepared | Reproduce on the final authorized dataset and retain command output |
-| Produce IEEE manuscript | Evidence-qualified LaTeX source and editable Word draft exist; citation keys and bibliography keys match | Draft prepared | Fill author metadata, create empirical tables only from approved data, and visually render the final document |
+| Produce IEEE manuscript | Evidence-qualified LaTeX source and editable IEEE-style Word draft exist; citation keys and bibliography keys match. LaTeX source now describes model 1.2 and retains older Phase 5A figures without rescoring | Draft prepared; source compilation is verified | Fill author email, create empirical tables only from approved data, synchronize the Word draft, and visually render the final document |
 | Compare workflows honestly | A separate workflow-efficiency report distinguishes measured repository facts from unmeasured time or cost estimates | Prepared | Update only with actual recorded timing or cost observations |
-| Create durable checkpoints | Checkpoints through `bc5096a` were pushed to `origin/phase/5a-results` | Verified by successful push and matching local tracking branch | Open a pull request only if review or merge is requested |
+| Create durable checkpoints | Commit `34b7f3ddeea264ffee65ac34820ec0d102a0a294` was pushed to `origin/phase/5a-results` and independently fetched through GitHub | Verified remote commit; no CI status was returned for this commit in the current check | Open a pull request only if review or merge is requested |
+| Implement the three approved remaining code items | Model 1.2 severity-weighted OS score; bounded verified TLS checks; aggregate `/research` dashboard with read-only DB access; covered by the 268-test suite | Complete for the approved software scope | Empirical validation and protocol/cipher completeness remain out of scope |
 
 ## Evidence boundaries
 

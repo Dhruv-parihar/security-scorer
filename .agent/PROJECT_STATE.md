@@ -96,7 +96,7 @@ CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
 - New TLS checks are bounded checks, not a comprehensive protocol/cipher audit;
   legacy-only endpoints may yield ERROR under the host TLS policy.
 - Durable Git checkpoints `3ff69af`, `eea35e7`, `28b88ec`, `bc5096a`,
-  `9a48a70`, and `cf5525c` were selectively staged and pushed to
+  `9a48a70`, `cf5525c`, and `34b7f3d` were selectively staged and pushed to
   `origin/phase/5a-results`. The connected GitHub integration still cannot
   create a new branch, but elevated local Git access permitted the existing
   tracked branch to be updated. Archived handoff directories remain untracked.
