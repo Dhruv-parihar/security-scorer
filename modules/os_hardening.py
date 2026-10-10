@@ -30,6 +30,7 @@ findings so existing CLI/Flask rendering is unaffected.
 import platform
 import subprocess
 import os
+from modules.scoring_config import OS_SEVERITY_WEIGHT, OS_SCORING_METHOD
 
 
 # ── OS detection ─────────────────────────────────────────────────────────────
@@ -234,6 +235,32 @@ CHECKS = [
 ]
 
 
+def calculate_score(findings):
+    """Return the normalized severity-weighted PASS percentage.
+
+    Only PASS/FAIL checks contribute. Unknown/missing severity on an evaluated
+    check is rejected rather than silently assigned a weight.
+    """
+    applicable = [f for f in findings if f.get("status") in ("PASS", "FAIL")]
+    if not applicable:
+        return None
+
+    total_weight = 0
+    passed_weight = 0
+    for finding in applicable:
+        severity = finding.get("severity")
+        if severity not in OS_SEVERITY_WEIGHT:
+            raise ValueError(
+                f"Evaluated OS finding {finding.get('id', '<unknown>')} "
+                f"has unsupported severity {severity!r}"
+            )
+        weight = OS_SEVERITY_WEIGHT[severity]
+        total_weight += weight
+        if finding["status"] == "PASS":
+            passed_weight += weight
+    return round(100 * passed_weight / total_weight)
+
+
 def run():
     """
     Run all OS hardening checks and return a score + findings.
@@ -246,13 +273,14 @@ def run():
     findings = [check(os_family) for check in CHECKS]
 
     applicable = [f for f in findings if f["status"] in ("PASS", "FAIL")]
-    passed_count = sum(1 for f in applicable if f["status"] == "PASS")
-    score = round((passed_count / len(applicable)) * 100) if applicable else None
+    score = calculate_score(findings)
 
     return {
         "layer": "os_hardening",
         "os_family": os_family,
         "score": score,
+        "scoring_method": OS_SCORING_METHOD,
+        "severity_weights": dict(OS_SEVERITY_WEIGHT),
         "findings": findings,
         "applicable_checks": len(applicable),
         "not_applicable_checks": sum(

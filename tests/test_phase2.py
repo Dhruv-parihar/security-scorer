@@ -23,6 +23,7 @@ from modules.scoring import compute_composite, _is_failed_finding
 from modules.authorization import require_authorization, check_authorization, AuthorizationError
 from modules.os_hardening import (
     _not_applicable, _pass, _fail, _detect_os, run as os_run,
+    calculate_score,
     check_ssh_root_login, check_password_max_days, check_firewall_active,
     check_automatic_updates, check_guest_account_disabled,
     check_world_writable_files,
@@ -231,9 +232,8 @@ class TestR2R3OSNotApplicable:
             # Empty evaluation has no score; zero would imply evaluated failure.
             assert result["score"] is None
         else:
-            # Score must equal pass_count/applicable_count * 100
-            pass_count = sum(1 for f in applicable if f["status"] == "PASS")
-            expected_score = round(pass_count / len(applicable) * 100)
+            # Score must use the versioned severity-weighted formula.
+            expected_score = calculate_score(findings)
             assert result["score"] == expected_score, \
                 f"Score mismatch: got {result['score']}, expected {expected_score}"
         # NOT_APPLICABLE count is reported
@@ -252,9 +252,7 @@ class TestR2R3OSNotApplicable:
             _not_applicable("password_max_days", "PWD", "Windows"),
             _not_applicable("automatic_updates", "UPD", "Windows"),
         ]
-        applicable = [f for f in findings if f["status"] in ("PASS", "FAIL")]
-        passed_count = sum(1 for f in applicable if f["status"] == "PASS")
-        score = round((passed_count / len(applicable)) * 100) if applicable else 0
+        score = calculate_score(findings)
         assert score == 100, f"Expected 100 when all applicable pass, got {score}"
 
     def test_check_returns_pass_or_fail_on_linux(self):

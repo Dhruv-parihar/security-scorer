@@ -37,6 +37,7 @@
     {% if composite.composite_score is not none %}
       <div class="composite-box">
         <h2>Composite Score: {{ composite.composite_score }}/100</h2>
+        <p style="color:#9ca3af;font-size:0.9rem;">Scoring model version {{ composite.scoring_model_ver }}. OS severity weighting is an uncalibrated engineering choice.</p>
         <p>Weakest layer: <strong>{{ composite.weakest_layer }}</strong> — prioritize fixing this first.</p>
 
         <table>
@@ -77,7 +78,7 @@
       <table>
         <tr><th>Status</th><th>Severity</th><th>Detail</th></tr>
         {% for f in result.findings %}
-        <tr class="{{ 'pass' if f.get('passed') else ('na' if f.get('status') == 'NOT_APPLICABLE' else 'fail') }}">
+        <tr class="{{ 'pass' if f.get('status') == 'PASS' or (f.get('status') is none and f.get('passed') is sameas true) else ('fail' if f.get('status') == 'FAIL' or (f.get('status') is none and f.get('passed') is sameas false) else 'na') }}">
           <td>{{ f.get('status') or ('PASS' if f.get('passed') else 'FAIL') }}</td>
           <td>{{ f.severity or '—' }}</td>
           <td>{{ f.description or f.note or f.id }}</td>

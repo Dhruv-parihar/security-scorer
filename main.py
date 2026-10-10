@@ -154,6 +154,8 @@ def run_webapp(conn, target):
     if result.get("error"):
         print(f"Error: {result['error']}")
         return None, target_id
+    if result.get("scan_error"):
+        print(f"Scan warning: {result['scan_error']}")
     print(f"Score: {result['score']}/100\n")
     print_findings(result["findings"])
     return result, target_id

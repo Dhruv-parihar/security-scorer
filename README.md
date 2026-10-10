@@ -43,7 +43,7 @@ security-scorer/
 ├── modules/
 │   ├── os_hardening.py      # Local config checks (SSH, firewall, updates, etc.)
 │   ├── network_scan.py      # Nmap-based service scan + severity matching
-│   ├── webapp_scan.py       # Header/cookie checks + basic SQLi/XSS heuristics
+│   ├── webapp_scan.py       # Headers/cookies, TLS checks, SQLi/XSS heuristics
 │   └── scoring.py           # Composite scoring + ranked recommendations
 ├── data/
 │   └── vuln_severity.json   # Known-service severity reference table
@@ -54,8 +54,10 @@ security-scorer/
 
 ## How scoring works
 
-Each layer returns a score out of 100 based on the proportion of
-checks passed (weighted by severity for network/webapp). The composite
+Each layer returns a score out of 100. The OS layer uses a versioned
+severity-weighted PASS ratio (high=3, medium=2, low=1); network and web layers
+retain their versioned severity penalties. OS weights are engineering
+judgments, not empirically calibrated. The composite
 score combines all layers actually run, using configurable weights
 (default: OS 30%, Network 35%, Web App 35%). Weights are re-normalized
 if only some layers are selected.
@@ -95,6 +97,11 @@ python3 app.py
 
 Open `http://127.0.0.1:5000` in a browser, select layers and targets,
 and view results with ranked recommendations.
+
+The app also exposes a read-only aggregate research dashboard at
+`http://127.0.0.1:5000/research`. Dashboard summaries are not provenance
+approval and must not be used as empirical paper results until the research
+database and raw-output manifest pass the documented preflight.
 
 ## Research evidence status
 

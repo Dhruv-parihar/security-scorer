@@ -135,3 +135,28 @@ a {
 
 .na { background: rgba(148, 163, 184, 0.08); }
 .na td { color: #6b7280; }
+
+.dashboard-caveat {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.45);
+  border-radius: 8px;
+  color: #fcd34d;
+  padding: 1rem;
+  margin: 1.5rem 0;
+}
+
+.dashboard-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.dashboard-cards .composite-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-cards strong { font-size: 1.7rem; color: #4ade80; }
+.dashboard-cards span { color: #9ca3af; font-size: 0.9rem; }

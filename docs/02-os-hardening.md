@@ -14,7 +14,8 @@ host machine, inspired by CIS Benchmark categories:
 | Guest login account disabled | Low |
 
 Each check returns PASS/FAIL with a specific remediation recommendation.
-The score is the proportion of checks passed, weighted by severity.
+In the current version, applicable checks use severity weights (high=3,
+medium=2, low=1) to calculate the normalized OS score.
 
 ## Usage (CLI)
 
@@ -24,6 +25,11 @@ python3 main.py
 ```
 
 ## Results
+
+The scores below are archived historical observations from an earlier scoring
+version. They are preserved as originally reported, not recomputed under the
+current severity-weighted method, and should not be compared directly with new
+version 1.2 scores without the original findings and scoring provenance.
 
 ### Windows host (baseline — unconfigured system)
 Score: **33/100** — typical for a default Windows/developer machine

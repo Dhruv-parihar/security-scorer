@@ -229,3 +229,42 @@ guard with the provenance preflight and prevents data collection before the
 supporting authorization is recorded.
 **Tests:** `test_target_without_authorization_reference_is_blocked` verifies
 both raising and non-raising authorization paths block the target.
+
+## D-026 - Versioned severity-weighted OS scoring
+**Date:** 2026-10-10
+**Decision:** Scoring model version 1.2 computes the OS score from applicable
+PASS/FAIL checks using ordinal weights high=3, medium=2, low=1. Unevaluated
+statuses remain excluded; missing/unsupported severity on an evaluated check
+raises an error. Snapshot metadata records the scoring method and weights.
+Historical snapshots and Phase 5A reports are not rewritten.
+**Rationale:** Severity matters to risk interpretation, but no empirical
+calibration data are available. The explicit weights are a transparent
+engineering judgment and must not be represented as optimal or empirically
+validated.
+**Tests:** Severity dominance, NOT_APPLICABLE exclusion, empty evaluation, and
+invalid severity cases are covered in `tests/test_approved_improvements.py`.
+
+## D-027 - Explicit, verified TLS findings for web scans
+**Date:** 2026-10-10
+**Decision:** Web scans record HTTPS transport, certificate validation using
+the platform trust store, and successfully negotiated TLS version as separate
+findings. HTTP URLs fail the HTTPS transport check; certificate and protocol
+checks are NOT_APPLICABLE. Certificate verification failures are FAIL; other
+handshake failures are ERROR. HSTS is assessed only on HTTPS responses. TLS
+checks carry a detector version and are stored with their version metadata.
+**Rationale:** Do not disable certificate verification or convert inability to
+inspect into a vulnerability claim. Legacy protocol/cipher enumeration is
+explicitly outside this bounded check's claim.
+**Tests:** Mocked verified handshake, certificate failure, malformed URL, and
+loopback HTTP behavior.
+
+## D-028 - Aggregate research dashboard is read-only
+**Date:** 2026-10-10
+**Decision:** `/research` reads the existing analysis outputs through a SQLite
+read-only connection and displays aggregate counts/rates only. It does not
+initialize a database, create records, or expose target aliases/raw evidence.
+The page warns that aggregates do not establish authorization or provenance.
+**Rationale:** Provide convenient progress visibility without mutating source
+observations or presenting unvalidated data as paper-ready.
+**Tests:** Missing DB remains uncreated; populated DB returns aggregates,
+preserves assessment count, and does not render the target alias.

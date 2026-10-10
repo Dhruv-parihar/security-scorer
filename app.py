@@ -20,6 +20,9 @@ from modules.assessment_scope import validate_composite_scope
 from db.schema import initialize, seed_taxonomy
 from db.adapters import store_assessment_results
 from db.repository import list_targets, create_target, add_target_identifier
+from analysis.common import open_readonly
+from analysis.longitudinal import run_longitudinal_analysis
+from analysis.prevalence import run_full_analysis
 import os
 
 app = Flask(__name__)
@@ -40,6 +43,38 @@ def index():
     targets = list_targets(conn)
     conn.close()
     return render_template("index.html", targets=targets)
+
+
+@app.route("/research", methods=["GET"])
+def research_dashboard():
+    """Show aggregate research summaries without opening the DB for writes."""
+    if not os.path.isfile(DB_PATH):
+        return render_template("research_dashboard.html", dashboard=None, error=None)
+
+    conn = None
+    try:
+        conn = open_readonly(DB_PATH)
+        analysis = run_full_analysis(conn)
+        longitudinal = run_longitudinal_analysis(conn)
+        dashboard = {
+            "assessment_distribution": analysis["assessment_distribution"],
+            "layer_prevalence": analysis["layer_prevalence"],
+            "finding_prevalence": analysis["finding_prevalence"][:10],
+            "severity_distribution": analysis["severity_distribution"],
+            "status_distribution": analysis["status_distribution"],
+            "empirical_limitation": analysis["empirical_limitation"],
+            "longitudinal": {
+                "target_count": longitudinal["target_count"],
+                "comparison_count": longitudinal["comparison_count"],
+            },
+        }
+        return render_template("research_dashboard.html", dashboard=dashboard, error=None)
+    except Exception as exc:
+        # Analysis is read-only; surface malformed or incompatible DBs clearly.
+        return render_template("research_dashboard.html", dashboard=None, error=str(exc)), 500
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 @app.route("/targets/add", methods=["POST"])
@@ -132,9 +167,9 @@ def scan():
             else:
                 target_ids["webapp"] = tid
                 result = webapp_scan.run(webapp_target)
-                if result.get("error"):
-                    errors.append(f"Web app scan: {result['error']}")
-                else:
+                if result.get("scan_error"):
+                    errors.append(f"Web app scan: {result['scan_error']}")
+                if result.get("score") is not None or result.get("findings"):
                     layer_results["webapp"] = result
 
     # ── Composite scoring ────────────────────────────────────────────────────

@@ -1,14 +1,14 @@
 # PROJECT STATE
 
 **Last updated:** 2026-10-10
-**Updated by:** Continuation audit
+**Updated by:** Continuation implementation
 **Current branch:** phase/5a-results
 **Baseline branch:** main @ 6edab0a
 
 ---
 
 ## Current Phase
-CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PENDING
+CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
 
 ## Completed Work
 - [x] Phase 0: Repo audit (phase/0-audit @ d4977a1)
@@ -43,6 +43,9 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - [x] Continuation active-scan authorization: network and web scanning require
   both a valid target authorization status and a non-empty authorization
   reference.
+- [x] Approved continuation improvements: OS severity-weighted scoring (model
+  version 1.2), verified TLS/certificate findings for web scans, and an
+  aggregate read-only research dashboard. Historical scores remain unchanged.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -63,7 +66,8 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Current continuation verification: 259 passed, 1 expected Linux-only skip.
+- Latest full-suite verification after the approved improvements: 268 passed,
+  1 expected Linux-only skip (Python 3.12.14 on Windows).
 - Fresh verification on 2026-10-10 used Python 3.12.14 on Windows; all
   installed packages matched `requirements-dev.lock`. Pytest used a fresh,
   writable workspace temp directory because the default Windows temp path was
@@ -89,6 +93,8 @@ CONTINUATION HARDENING — CODE AND CHECKPOINT COMPLETE; EMPIRICAL EVIDENCE PEND
   dataset. The controlled-lab evaluator and label format are ready, but no
   authorized ground-truth experiment has been run. Synthetic fixtures cannot
   provide these results.
+- New TLS checks are bounded checks, not a comprehensive protocol/cipher audit;
+  legacy-only endpoints may yield ERROR under the host TLS policy.
 - Durable Git checkpoints `3ff69af`, `eea35e7`, `28b88ec`, `bc5096a`,
   `9a48a70`, and `cf5525c` were selectively staged and pushed to
   `origin/phase/5a-results`. The connected GitHub integration still cannot

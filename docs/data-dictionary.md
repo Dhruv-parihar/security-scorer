@@ -1,6 +1,6 @@
 # Data Dictionary — Security Scoring Framework Research Database
 **Schema version:** 3
-**Last updated:** 2026-10-05
+**Last updated:** 2026-10-10
 
 ---
 
@@ -142,6 +142,10 @@ One finding = one check result from one assessment.
 | detector_notes | TEXT | Notes from detector (e.g. why NOT_APPLICABLE) |
 | detected_at | TEXT | ISO-8601 |
 
+The HTTPS web checks use `check_version` to identify their detector revision.
+OS severity-weighted scoring configuration is stored in score-snapshot
+`model_metadata`; it does not change the underlying PASS/FAIL observations.
+
 **Status semantics:**
 
 | Status | Meaning | Counts in prevalence? | Reduces score? |
@@ -164,7 +168,7 @@ Stored for reproducibility and model comparison.
 | snapshot_id | TEXT PK | UUID |
 | assessment_id | TEXT FK→assessment | Source assessment |
 | scoring_model_id | TEXT | e.g. "weighted_composite_v1" |
-| scoring_model_ver | TEXT | e.g. "1.0" |
+| scoring_model_ver | TEXT | e.g. "1.2" |
 | os_score | REAL | 0–100 |
 | network_score | REAL | 0–100 |
 | web_score | REAL | 0–100 |

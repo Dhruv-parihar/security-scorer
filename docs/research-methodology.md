@@ -1,6 +1,6 @@
 # Research Methodology
-**Version:** 1.2
-**Last updated:** 2026-10-05
+**Version:** 1.3
+**Last updated:** 2026-10-10
 
 ---
 
@@ -114,7 +114,7 @@ Severity is NULL for NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN findings.
 
 ## 5. Scoring Model
 
-### 5.1 Current Model: weighted_composite_v1 (version 1.1)
+### 5.1 Current Model: weighted_composite_v1 (version 1.2)
 
 The current scoring model is preserved as a baseline. It is NOT claimed
 to be empirically optimal — the weights were set by expert judgment.
@@ -147,12 +147,40 @@ from the composite and recorded as excluded; they are never converted to a
 score of zero. The network and web layers retain separately versioned severity
 penalty tables because their historical penalty policies differ.
 
+**OS layer scoring (introduced in model version 1.2):** Applicable OS checks
+with PASS or FAIL status receive ordinal severity weights: high = 3, medium = 2,
+and low = 1. The OS score is the nearest integer to
+`100 × (sum of weights for PASS checks / sum of weights for all applicable
+PASS/FAIL checks)`. NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN findings are
+excluded. An evaluated check with an unsupported or missing severity is rejected
+rather than silently assigned a weight. These ordinal weights are a transparent
+engineering judgment, not empirically calibrated values; conclusions must not
+claim that this weighting is objectively optimal. Historical score snapshots
+are retained as originally calculated and are not backfilled under this rule.
+
+**Web TLS checks (introduced in model version 1.2):** An HTTP scan URL is a
+FAIL for HTTPS transport; certificate and protocol checks are NOT_APPLICABLE.
+For HTTPS, the scanner uses the platform trust store and normal hostname
+verification, records certificate verification separately, and reports the
+negotiated protocol as acceptable when TLS 1.2 or 1.3 is negotiated. A
+certificate-validation failure is a FAIL; other handshake/connection failures
+are ERROR, not FAIL. HSTS is evaluated only on an HTTPS response. The checks do
+not enumerate legacy TLS protocols or cipher suites; a server that cannot
+negotiate under the host runtime's TLS policy may therefore be reported as
+ERROR rather than diagnosed as an obsolete-protocol failure. This detector is
+not a substitute for a dedicated TLS assessment.
+
+**Research dashboard:** `/research` runs existing aggregate analyses against
+the local SQLite database using a read-only connection. It does not create or
+modify observations and hides target aliases and raw evidence. Dashboard output
+is descriptive only and does not replace authorization/provenance preflight.
+
 ### 5.2 Known Limitations of Current Model
 
 - Weights based on expert judgment, not empirical calibration
 - Network layer penalty accumulation means 3+ critical services → score 0
   with no differentiation between "bad" and "catastrophically bad"
-- OS module does not weight individual checks by severity
+- OS ordinal severity weights are not empirically calibrated
 - The scanner is a bounded indicator tool, not a vulnerability-completeness
   guarantee; raw observations and detector limitations must accompany results
 

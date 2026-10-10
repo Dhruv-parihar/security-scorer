@@ -28,6 +28,7 @@ from db.repository import (
 )
 from db.schema import get_current_version
 from modules.scoring_config import SCORING_MODEL_VERSION, SEVERITY_CONFIG_VERSION
+from modules.scoring_config import OS_SEVERITY_WEIGHT, OS_SCORING_METHOD
 
 # Map scanner layer keys → DB layer values
 LAYER_MAP = {
@@ -197,6 +198,7 @@ def store_assessment_results(
                 recommendation=recommendation,
                 standard_ref=standard_ref,
                 taxonomy_id=taxonomy_id,
+                check_version=finding.get("check_version"),
             )
 
             # Create pending remediation for FAIL findings
@@ -214,8 +216,12 @@ def store_assessment_results(
             weight_os=composite_result.get('weights', {}).get('os_hardening', weight_os),
             weight_network=composite_result.get('weights', {}).get('network', weight_network),
             weight_web=composite_result.get('weights', {}).get('webapp', weight_web),
-            model_metadata={'severity_config_version': SEVERITY_CONFIG_VERSION,
-                            'excluded_layers': composite_result.get('excluded_layers', {})},
+            model_metadata={
+                'severity_config_version': SEVERITY_CONFIG_VERSION,
+                'os_scoring_method': OS_SCORING_METHOD,
+                'os_severity_weights': dict(OS_SEVERITY_WEIGHT),
+                'excluded_layers': composite_result.get('excluded_layers', {}),
+            },
         )
 
     close_assessment(conn, assessment_id)
@@ -239,6 +245,9 @@ _CHECK_TAXONOMY = {
     "header_x_content_type_options": ("CONFIGURATION", None),
     "reflected_sqli_heuristic": ("INPUT_VALIDATION", None),
     "reflected_xss_heuristic": ("INPUT_VALIDATION", None),
+    "https_transport": ("CRYPTOGRAPHY", None),
+    "tls_certificate_valid": ("CRYPTOGRAPHY", None),
+    "tls_protocol_version": ("CRYPTOGRAPHY", None),
 }
 
 _NETWORK_TAXONOMY = {

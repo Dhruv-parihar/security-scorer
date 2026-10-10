@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Research Dashboard - Security Scoring Framework</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="container">
+    <h1>Research Dashboard</h1>
+    <p class="subtitle">Read-only aggregate summaries from the local research database</p>
+    <p><a href="{{ url_for('index') }}">Return to scanner</a></p>
+
+    <div class="dashboard-caveat">
+      These descriptive summaries are not a provenance or authorization approval.
+      Verify the database and raw-output manifest with the research-data preflight
+      before using any result in a paper. Small samples are preliminary; association
+      does not establish causation. This page displays aggregate counts, not target
+      identifiers or raw evidence.
+    </div>
+
+    {% if error %}
+      <div class="errors"><p>Dashboard could not read the research database: {{ error }}</p></div>
+    {% elif not dashboard %}
+      <div class="composite-box"><p>No local research database was found. Run an authorized, documented assessment before expecting data here.</p></div>
+    {% else %}
+      <p>{{ dashboard.empirical_limitation }}</p>
+
+      {% set dist = dashboard.assessment_distribution %}
+      <div class="dashboard-cards">
+        <div class="composite-box"><strong>{{ dist.total_assessments }}</strong><span>Assessments</span></div>
+        <div class="composite-box"><strong>{{ dist.assessments_with_findings }}</strong><span>With findings</span></div>
+        <div class="composite-box"><strong>{{ dist.assessments_with_fail }}</strong><span>With at least one FAIL</span></div>
+        <div class="composite-box"><strong>{{ dashboard.longitudinal.comparison_count }}</strong><span>Same-target comparisons</span></div>
+      </div>
+
+      {% if dist.composite_score_distribution %}
+      <h2>Composite score distribution</h2>
+      <p>n={{ dist.composite_score_distribution.n }} · mean {{ dist.composite_score_distribution.mean }} · median {{ dist.composite_score_distribution.median }} · range {{ dist.composite_score_distribution.min }}–{{ dist.composite_score_distribution.max }}</p>
+      {% endif %}
+
+      <h2>Failure prevalence by layer</h2>
+      {% if dashboard.layer_prevalence %}
+      <table>
+        <tr><th>Layer</th><th>Evaluated checks</th><th>FAIL</th><th>PASS</th><th>FAIL rate</th></tr>
+        {% for row in dashboard.layer_prevalence %}
+        <tr><td>{{ row.layer }}</td><td>{{ row.total_check_evaluations }}</td><td>{{ row.total_fail }}</td><td>{{ row.total_pass }}</td><td>{{ row.overall_fail_pct }}%</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}<p>No evaluated PASS/FAIL findings yet.</p>{% endif %}
+
+      <h2>Most prevalent checks (up to 10)</h2>
+      {% if dashboard.finding_prevalence %}
+      <table>
+        <tr><th>Check</th><th>Layer</th><th>Applicable assessments</th><th>FAIL</th><th>FAIL rate</th><th>Sample flag</th></tr>
+        {% for row in dashboard.finding_prevalence %}
+        <tr><td>{{ row.check_id }}</td><td>{{ row.layer }}</td><td>{{ row.n_applicable }}</td><td>{{ row.n_fail }}</td><td>{{ row.fail_pct }}%</td><td>{{ 'Preliminary' if row.preliminary else '—' }}</td></tr>
+        {% endfor %}
+      </table>
+      {% else %}<p>No check prevalence can be computed until findings are evaluated.</p>{% endif %}
+
+      <h2>Finding statuses</h2>
+      <table>
+        <tr><th>Status</th><th>Count</th></tr>
+        {% for status, count in dashboard.status_distribution.status_counts.items() %}
+        <tr><td>{{ status }}</td><td>{{ count }}</td></tr>
+        {% else %}<tr><td colspan="2">No findings stored.</td></tr>{% endfor %}
+      </table>
+    {% endif %}
+  </div>
+</body>
+</html>

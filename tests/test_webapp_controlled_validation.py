@@ -51,11 +51,10 @@ def test_local_ground_truth_triggers_both_reflection_heuristics(local_target):
     result = run(local_target)
     findings = {finding["id"]: finding for finding in result["findings"]}
     assert all(findings[f"header_{header}"]["passed"] is True for header in (
-        "content_security_policy",
-        "x_frame_options",
-        "strict_transport_security",
-        "x_content_type_options",
+        "content_security_policy", "x_frame_options", "x_content_type_options",
     ))
+    assert findings["header_strict_transport_security"]["status"] == "NOT_APPLICABLE"
+    assert findings["https_transport"]["status"] == "FAIL"
     assert findings["reflected_sqli_heuristic"]["passed"] is False
     assert findings["reflected_xss_heuristic"]["passed"] is False
-    assert result["score"] == 35
+    assert result["score"] == 10
