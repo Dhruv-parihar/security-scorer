@@ -1,6 +1,6 @@
 # PROJECT STATE
 
-**Last updated:** 2026-10-10
+**Last updated:** 2026-10-11
 **Updated by:** Continuation implementation
 **Current branch:** phase/5a-results
 **Baseline branch:** main @ 6edab0a
@@ -95,6 +95,19 @@ CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
   provide these results.
 - New TLS checks are bounded checks, not a comprehensive protocol/cipher audit;
   legacy-only endpoints may yield ERROR under the host TLS policy.
+- A user-supplied Lab 3 audit report was inspected and hash-archived in the
+  separate local handoff workspace. Its screenshots add historical context
+  only; the target `.102` mapping is unresolved against the later `.103`
+  Metasploitable console check. It contains credential/hash material and was
+  not copied into the repository. Its lab stages 0–7 do not resolve the
+  missing canonical project phase plan.
+- Current VM attempt (2026-10-11): VirtualBox reports Parrot Running, but its
+  guest display remains black after a `vmwgfx` unsupported-hypervisor warning;
+  no VM configuration has been changed. The checkout has no `research.db`, so
+  no explicit target authorization record is available. Option 4 also runs OS
+  checks locally on Parrot and is blocked from combining them with remote
+  Metasploitable results by the one-target scope guard. No scan or observation
+  was created; a web target URL is also unconfirmed.
 - Durable Git checkpoints `3ff69af`, `eea35e7`, `28b88ec`, `bc5096a`,
   `9a48a70`, `cf5525c`, and `34b7f3d` were selectively staged and pushed to
   `origin/phase/5a-results`. The connected GitHub integration still cannot

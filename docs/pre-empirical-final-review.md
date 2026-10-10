@@ -1,6 +1,6 @@
 # Pre-Empirical Final Review
 
-**Review date:** 2026-10-10
+**Review date:** 2026-10-11
 **Review scope:** The `phase/5a-results` working tree and its recorded remote
 checkpoints. This review does not treat historical handoff files, synthetic
 fixtures, or a passing test suite as empirical observations.
@@ -42,11 +42,21 @@ database, raw scanner output, or ground-truth label file. The archive bytes are
 not identical, so they are retained as separate screenshot archives, but their
 listed contents cannot establish empirical provenance or reproduce a result.
 
-The available environment could not compile the LaTeX draft or visually render
-the Word draft because its supported rendering components were unavailable.
-The Word file was statically checked for structure, table presence, two-column
-body layout, expected test count, and absence of raw LaTeX tokens. That is not
-a substitute for visual page review.
+The existing LaTeX source was successfully compiled with the built-in editor
+compiler, including after the latest citation update. No page-by-page visual
+review is recorded. The Word draft remains an earlier, unsynchronized version;
+its supported renderer could not run because bundled LibreOffice is
+unavailable. Its prior static structure checks do not substitute for visual
+page review.
+
+The author also supplied a separate Lab 3 audit report (hash and visible scope
+recorded in the local handoff inventory). It includes screenshot-backed
+historical displays, but not raw scanner output, run/version linkage, or a
+target join key. It uses `.102` for the target, while a later isolated-VM check
+identified Metasploitable at `.103`; the difference may reflect a changed lab
+state but is unresolved. The document's described lab stages 0–7 do not supply
+the missing canonical project phase plan. It is therefore cited as separate
+historical context and not merged into empirical Phase 5A rows.
 
 ## Completion inputs
 
@@ -56,8 +66,9 @@ Before the research can be described as empirically complete, provide:
    artifacts.
 2. A controlled-lab ground-truth file with independent rationale and evidence
    for each evaluated case.
-3. The original phase plan, if one exists, so its requirements can be mapped
-   rather than inferred.
+3. The canonical original project phase plan, if one exists, so its
+   requirements can be mapped rather than inferred. The Lab 3 report's stages
+   0–7 describe an audit procedure and are not a substitute for that plan.
 4. Author institution, location, and email for the manuscript title block.
 5. A working renderer or a human visual review of the final manuscript.
 
