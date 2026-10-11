@@ -175,9 +175,10 @@ class TestCLIPath:
         assert "os_hardening" in report["layers"]
         assert report["composite"]["composite_score"] is not None
 
-    def test_os_hardening_no_auth_check_required(self, db):
+    def test_os_hardening_no_auth_check_required(self, db, monkeypatch):
         """OS hardening is local — no authorization record needed."""
         from modules import os_hardening
+        monkeypatch.setattr(os_hardening, "_detect_os", lambda: "unknown")
         result = os_hardening.run()
         assert "score" in result
         assert "findings" in result
@@ -337,6 +338,73 @@ class TestFlaskPath:
         assert resp.status_code == 200
         mock_os.assert_called_once()
 
+    def test_flask_persists_local_os_only_with_authorized_binding(
+        self, flask_client, db
+    ):
+        local_id = create_target(
+            db, alias="local-windows-study", target_type="workstation",
+            environment="owned", authorization_status="OWNED",
+            os_family="windows", authorization_ref="LOCAL-OWNERSHIP-TEST-001",
+        )
+        result = {
+            "layer": "os_hardening", "score": 80, "findings": [],
+            "applicable_checks": 2, "total_checks": 2, "error_checks": 0,
+        }
+        with (
+            patch("app.os_hardening.run", return_value=result),
+            patch("app.store_assessment_results", return_value="assessment-123") as store,
+        ):
+            resp = flask_client.post("/scan", data={
+                "layers": ["os_hardening"],
+                "os_target": "local-windows-study",
+            })
+        assert resp.status_code == 200
+        store.assert_called_once()
+        assert store.call_args.args[1] == local_id
+        assert b"Assessment persisted" in resp.data
+
+    def test_flask_unregistered_os_binding_is_report_only(self, flask_client):
+        result = {
+            "layer": "os_hardening", "score": 80, "findings": [],
+            "applicable_checks": 2, "total_checks": 2, "error_checks": 0,
+        }
+        with (
+            patch("app.os_hardening.run", return_value=result),
+            patch("app.store_assessment_results") as store,
+        ):
+            resp = flask_client.post("/scan", data={
+                "layers": ["os_hardening"],
+                "os_target": "not-registered",
+            })
+        assert resp.status_code == 200
+        store.assert_not_called()
+        assert b"not bound or persisted" in resp.data
+
+    def test_flask_rejects_registered_family_mismatch(
+        self, flask_client, db
+    ):
+        create_target(
+            db, alias="registered-linux-host", target_type="workstation",
+            environment="owned", authorization_status="OWNED",
+            os_family="linux", authorization_ref="LOCAL-OWNERSHIP-TEST-002",
+        )
+        result = {
+            "layer": "os_hardening", "os_family": "windows", "score": 80,
+            "findings": [], "applicable_checks": 2, "total_checks": 2,
+            "error_checks": 0,
+        }
+        with (
+            patch("app.os_hardening.run", return_value=result),
+            patch("app.store_assessment_results") as store,
+        ):
+            resp = flask_client.post("/scan", data={
+                "layers": ["os_hardening"],
+                "os_target": "registered-linux-host",
+            })
+        assert resp.status_code == 200
+        store.assert_not_called()
+        assert b"does not match" in resp.data
+
     def test_add_target_route(self, flask_client):
         resp = flask_client.post("/targets/add", data={
             "alias": "192.168.100.1",
@@ -467,9 +535,10 @@ class TestDBIntegrity:
 # ── Backward compatibility ────────────────────────────────────────────────────
 
 class TestBackwardCompatibility:
-    def test_scanner_modules_unchanged(self):
+    def test_scanner_modules_unchanged(self, monkeypatch):
         """Scanner module imports must succeed unchanged."""
         from modules import os_hardening, network_scan, webapp_scan, scoring
+        monkeypatch.setattr(os_hardening, "_detect_os", lambda: "unknown")
         result = os_hardening.run()
         assert "score" in result
         assert "findings" in result

@@ -68,20 +68,32 @@
 
     <h2>Detailed Findings</h2>
     {% for layer, result in layer_results.items() %}
-      <h3>{{ layer }} — {{ result.score }}/100
+      <h3>{{ layer }} — {% if result.score is not none %}{{ result.score }}/100{% else %}score unavailable{% endif %}
         {% if result.get('not_applicable_checks') %}
           <span style="font-size:0.75rem;color:#9ca3af;font-weight:normal;">
             ({{ result.not_applicable_checks }} check(s) not applicable to this OS)
           </span>
         {% endif %}
       </h3>
+      {% if result.get('total_checks') is not none %}
+        <p style="color:#9ca3af;font-size:0.85rem;">
+          {{ result.get('os_family', 'unknown') }} {{ result.get('platform_release', '') }}
+          (build {{ result.get('platform_version', 'unknown') }}, {{ result.get('architecture', 'unknown') }}) ·
+          control profile {{ result.get('control_profile', 'unknown') }} ·
+          {{ result.get('applicable_checks', 0) }}/{{ result.total_checks }} evaluated ·
+          {{ result.get('error_checks', 0) }} query error(s)
+        </p>
+      {% endif %}
+      {% if result.get('score_suppressed_reason') %}
+        <p class="errors">{{ result.score_suppressed_reason }}</p>
+      {% endif %}
       <table>
         <tr><th>Status</th><th>Severity</th><th>Detail</th></tr>
         {% for f in result.findings %}
         <tr class="{{ 'pass' if f.get('status') == 'PASS' or (f.get('status') is none and f.get('passed') is sameas true) else ('fail' if f.get('status') == 'FAIL' or (f.get('status') is none and f.get('passed') is sameas false) else 'na') }}">
           <td>{{ f.get('status') or ('PASS' if f.get('passed') else 'FAIL') }}</td>
           <td>{{ f.severity or '—' }}</td>
-          <td>{{ f.description or f.note or f.id }}</td>
+          <td>{{ f.description or f.note or f.id }}{% if f.get('not_applicable_reason') %}<br><small style="color:#9ca3af;">{{ f.not_applicable_reason }}</small>{% endif %}</td>
         </tr>
         {% endfor %}
       </table>

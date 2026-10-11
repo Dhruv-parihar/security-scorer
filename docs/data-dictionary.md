@@ -1,6 +1,6 @@
 # Data Dictionary — Security Scoring Framework Research Database
-**Schema version:** 3
-**Last updated:** 2026-10-10
+**Schema version:** 4
+**Last updated:** 2026-10-11
 
 ---
 
@@ -117,6 +117,11 @@ One assessment run against one target at one point in time.
 | authorization_status | TEXT | Must be valid AUTH_STATUS and exactly match the parent target authorization record |
 | assessor | TEXT | Anonymized assessor identifier |
 | notes | TEXT | Free-text notes |
+| metadata_json | TEXT | Structured, allowlisted collection context such as local OS family/build, control profile, scoring version, and check denominators; not credentials or raw target identifiers |
+
+The v3-to-v4 migration adds `metadata_json` without altering existing
+assessments. The field is retained even when a query error suppresses an
+aggregate score, so an incomplete run remains traceable as an assessment.
 
 ---
 
@@ -143,6 +148,8 @@ One finding = one check result from one assessment.
 | detected_at | TEXT | ISO-8601 |
 
 The HTTPS web checks use `check_version` to identify their detector revision.
+Local OS findings use their versioned control-profile identifier (for example,
+`windows_local_v1`) so longitudinal matching can distinguish profile changes.
 OS severity-weighted scoring configuration is stored in score-snapshot
 `model_metadata`; it does not change the underlying PASS/FAIL observations.
 
@@ -168,7 +175,7 @@ Stored for reproducibility and model comparison.
 | snapshot_id | TEXT PK | UUID |
 | assessment_id | TEXT FK→assessment | Source assessment |
 | scoring_model_id | TEXT | e.g. "weighted_composite_v1" |
-| scoring_model_ver | TEXT | e.g. "1.2" |
+| scoring_model_ver | TEXT | e.g. "1.3" |
 | os_score | REAL | 0–100 |
 | network_score | REAL | 0–100 |
 | web_score | REAL | 0–100 |

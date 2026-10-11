@@ -65,6 +65,37 @@ These are new continuation work packages, not a reconstruction of an unavailable
 33. Inspected the user-supplied `Lab3_Security_Audit_Report_Dhruv_Parihar.docx` (source SHA-256 `92CF520E6ADDB76C95CB7F48809871C835AF56C7208ED4EDF9A083E8AE0B2627`). It contains 14 image placements/12 unique embedded images, including historical displays of 22 open ports and a CLI composite of 32/100. The scope table maps the target to `.102`, while a later isolated-VM console check recorded Metasploitable `.103` and Parrot `.102`; the mapping remains unresolved. The report has no raw scanner transcript, tool-version/run join key, or per-target authorization reference, and a screenshot's guest report path was not found in the Windows checkout. Its phases 0–7 are lab-audit activities, not the missing canonical 15-phase project plan. The report was copied byte-for-byte to the separate Codex evidence archive and hash-verified; it was not committed to this repository because embedded credential/hash material needs redaction for external sharing. The IEEE source in the local handoff now cites it as separate historical context, not a new dataset row. No scan or database observation was created.
 34. On 2026-10-11, inspected the running VirtualBox consoles and current scorer preconditions. Parrot is reported by VirtualBox as Running, but its visible console remains black after a `vmwgfx` unsupported-hypervisor graphics warning; no VM display setting was changed. `research.db` is absent in the Windows checkout, so no target authorization record currently exists there. The scorer requires a non-empty authorization reference before active scanning. In addition, option 4 runs OS hardening on the local Parrot host and the scope guard explicitly blocks combining that result with a separate remote Metasploitable target; it cannot produce a valid one-target composite in this configuration. The option also asks for a web URL, which has not been specifically confirmed. No scan was run and no database/report observation was created. Next action needs either a valid target scope/reference and approval to use network-only mode, or a valid same-host assessment setup; Parrot graphics troubleshooting also needs approval before changing VM settings.
 
+35. On 2026-10-11, began the researcher-requested cross-platform OS-hardening
+    study on new branch `phase/5b-cross-platform-os`, leaving the seven
+    untracked handoff folders untouched. Added local Windows and macOS profiles,
+    OS/platform/profile metadata, check denominators, and UI/CLI visibility;
+    bumped the code model to 1.3 without changing severity weights or historical
+    snapshots. A live, read-only Windows smoke query identified Windows 11 build
+    10.0.26200/AMD64: UAC was readable and passed, while firewall and Guest
+    account queries returned Access Denied. This exposed a misleading partial
+    100/100; model 1.3 now suppresses the aggregate score on any query ERROR.
+    The smoke check was not saved as a research observation and changed no
+    settings. Added an optional, explicit authorized-target binding for local
+    OS-only persistence in both CLI and Flask; mixed local/remote results are
+    accepted only for the same registered target, and known OS-family mismatch
+    blocks persistence. Without a valid binding the run stays report-only.
+    Focused target-binding tests passed 46/46; the full suite now passes 309
+    tests with one expected Linux-only skip. No Mac or lab scan was performed,
+    and no commit or push was made. Exact benchmark mapping, native Mac
+    validation, target access, and provenance-complete before/after data remain
+    pending.
+
+36. Corrected an OS-study traceability gap before collecting new measurements.
+    Schema v4 adds structured assessment metadata for platform release/build,
+    architecture, control profile, scoring version, and status denominators;
+    every local OS finding now carries the versioned profile ID as
+    `check_version`. The adapter stores this context even when query ERRORs
+    suppress the score and no score snapshot is created. Added migration,
+    deterministic-JSON, and error-run persistence tests. Focused suite:
+    83 passed; full suite: 312 passed, 1 expected Linux-only skip in 11.13s.
+    `git diff --check` is clean. Existing v3 rows are preserved with null
+    metadata; historical scores and Phase 5A artifacts are untouched.
+
 ## Measurement policy
 
 Record actual tool and test outcomes and required human interventions. The prior workflow is known from the researcher's description; historical timing and cost were not measured. Do not report an invented speedup, labor saving, or model-quality comparison.

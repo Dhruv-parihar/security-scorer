@@ -26,6 +26,10 @@
           <input type="checkbox" name="layers" value="os_hardening">
           OS Hardening (checks the machine this app is running on)
         </label>
+        <input type="text" name="os_target" placeholder="Optional: registered authorized target for this local machine (for research history)">
+        <p style="color:#9ca3af;font-size:0.85rem;">
+          This binds the local OS result to the machine running the scorer; it does not identify a remote scan target. Leave blank for a report without database persistence.
+        </p>
 
         <label class="checkbox-row">
           <input type="checkbox" name="layers" value="network">
@@ -91,7 +95,7 @@
       </select>
       <input type="text" name="os_family" placeholder="OS family (linux/windows/macos/unknown)">
       <input type="text" name="os_name" placeholder="OS name (optional, e.g. Ubuntu 8.04)">
-      <input type="text" name="authorization_ref" placeholder="Authorization reference / ticket (optional)">
+      <input type="text" name="authorization_ref" placeholder="Authorization reference / ownership or lab record (required for binding or active scans)">
       <button type="submit" style="margin-top:0.5rem;">Add Target</button>
     </form>
 

@@ -106,6 +106,21 @@ def _extract_evidence(finding, layer_key):
     return json.dumps(parts) if parts else None
 
 
+def _assessment_metadata(layer_results):
+    """Keep a small allowlist of non-secret collection context per assessment."""
+    os_result = layer_results.get("os_hardening")
+    if not isinstance(os_result, dict):
+        return None
+    fields = (
+        "os_family", "platform_release", "platform_version", "architecture",
+        "control_profile", "scoring_model_version", "scoring_method",
+        "severity_weights", "total_checks", "applicable_checks",
+        "error_checks", "not_applicable_checks", "score_suppressed_reason",
+    )
+    os_context = {key: os_result[key] for key in fields if key in os_result}
+    return {"layers": {"os_hardening": os_context}}
+
+
 def store_assessment_results(
     conn, target_id, layer_results, composite_result,
     tool_version="1.0.0", methodology_version="1.0",
@@ -153,6 +168,7 @@ def store_assessment_results(
         methodology_version=methodology_version,
         schema_version=get_current_version(conn),
         assessor=assessor, notes=notes,
+        metadata=_assessment_metadata(layer_results),
     )
 
     # Store findings for each layer

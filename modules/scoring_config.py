@@ -1,5 +1,5 @@
 """Versioned scoring parameters. Preserve historical layer-specific penalties."""
-SCORING_MODEL_VERSION = '1.2'
+SCORING_MODEL_VERSION = '1.3'
 SEVERITY_CONFIG_VERSION = '1.1'
 OS_SCORING_METHOD = 'severity_weighted_normalized_v1'
 OS_SEVERITY_WEIGHT = {'high': 3, 'medium': 2, 'low': 1}

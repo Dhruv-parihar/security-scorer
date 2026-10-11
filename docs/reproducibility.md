@@ -1,7 +1,7 @@
 # Reproducibility Guide
 
-**Last updated:** 2026-10-10
-**Code verification:** 268 passed, 1 expected Linux-only skip on Python 3.12.14 (Windows), using the command below and the reviewed dependency lock. Verified against commit `34b7f3ddeea264ffee65ac34820ec0d102a0a294` on `phase/5a-results`.
+**Last updated:** 2026-10-11
+**Code verification:** 312 passed, 1 expected Linux-only skip on Python 3.12 / Windows; current result is recorded in `.agent/PROJECT_STATE.md` and `docs/continuation-log.md` for the active `phase/5b-cross-platform-os` branch.
 
 ## Scope and evidence boundary
 
@@ -37,7 +37,7 @@ python -m pytest -q -p no:cacheprovider
 
 The repository's `pytest.ini` limits normal discovery to the canonical `tests/`
 suite, so archived handoff copies do not cause duplicate-module errors. The
-latest verified result is `268 passed, 1 skipped`. The exact count may
+latest verified result is `312 passed, 1 expected Linux-only skip`. The exact count may
 legitimately change with reviewed tests; a failure must be investigated rather
 than hidden by changing the expected count.
 
@@ -52,10 +52,14 @@ new empty writable directory for `--basetemp` (pytest clears that directory).
 The one skipped test is explicitly Linux-only (`tests/test_phase2.py`), so it
 is expected on the verified Windows environment rather than a hidden failure.
 
-The current scoring model is version 1.2. OS checks use the documented ordinal
+The current database schema is version 4. Migration 3→4 adds structured
+assessment metadata while preserving existing rows. The current scoring model
+is version 1.3. OS checks use the documented ordinal
 weights high=3, medium=2, low=1; these are engineering choices, not empirically
-calibrated values. Historical Phase 5A scores are not recomputed under the new
-model. The web scanner adds bounded HTTPS/certificate and negotiated-version
+calibrated values. Linux, Windows, and macOS have distinct versioned local
+control profiles and denominators; an OS score is suppressed if any control
+query returns ERROR. Historical Phase 5A scores are not recomputed under the
+new model. The web scanner adds bounded HTTPS/certificate and negotiated-version
 checks; a TLS handshake error is not treated as a certificate failure unless
 certificate verification itself fails. The `/research` Flask page runs
 aggregate analysis against a read-only SQLite connection.

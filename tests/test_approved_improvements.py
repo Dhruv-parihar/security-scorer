@@ -133,7 +133,7 @@ def test_research_dashboard_reads_aggregate_data_without_exposing_target_alias(t
     ).fetchone()
     conn.close()
     assert stored_check_version == "1.0"
-    assert snapshot["scoring_model_ver"] == "1.2"
+    assert snapshot["scoring_model_ver"] == "1.3"
     metadata = json.loads(snapshot["model_metadata"])
     assert metadata["os_scoring_method"] == "severity_weighted_normalized_v1"
 

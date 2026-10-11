@@ -13,14 +13,14 @@ Design principles:
 - Foreign keys enforced. Indexes on common research query paths.
 - Schema versioned via migrations table. Safe to re-run (idempotent).
 
-Schema version: 3
+Schema version: 4
 """
 
 import sqlite3
 import os
 from datetime import datetime, timezone
 
-SCHEMA_VERSION = 3
+SCHEMA_VERSION = 4
 
 # Finding status values — must remain consistent with FINDING_STATUSES
 FINDING_STATUSES = ("PASS", "FAIL", "NOT_APPLICABLE", "NOT_TESTED", "ERROR", "UNKNOWN")
@@ -205,6 +205,11 @@ MIGRATIONS = [
 
     CREATE INDEX IF NOT EXISTS idx_target_identifier_target
         ON target_identifier(target_id);
+    """,
+    # Migration 3 → 4: retain structured, non-secret scanner context on each
+    # assessment (for example the exact local OS profile and platform build).
+    """
+    ALTER TABLE assessment ADD COLUMN metadata_json TEXT;
     """,
 ]
 

@@ -144,7 +144,7 @@ class TestTargetIdentifierMigration:
                 ) VALUES ('legacy-target', 'legacy-lab', 'lab_vm', 'lab', 'LAB', 'now')
             """)
             conn.commit()
-            assert migrate(conn) == 3
+            assert migrate(conn) == 4
             row = conn.execute(
                 "SELECT target_id FROM target_identifier WHERE identifier = ?",
                 ("legacy-lab",),
@@ -164,11 +164,46 @@ class TestTargetIdentifierMigration:
                     ) VALUES (?, 'shared-legacy-alias', 'lab_vm', 'lab', 'LAB', 'now')
                 """, (target_id,))
             conn.commit()
-            assert migrate(conn) == 3
+            assert migrate(conn) == 4
             assert conn.execute(
                 "SELECT 1 FROM target_identifier WHERE identifier = ?",
                 ("shared-legacy-alias",),
             ).fetchone() is None
+        finally:
+            conn.close()
+
+    def test_v3_upgrade_preserves_assessments_and_adds_metadata_column(self):
+        conn = self._v2_connection()
+        try:
+            conn.execute("""
+                INSERT INTO target (
+                    target_id, target_alias, target_type, environment,
+                    authorization_status, created_at
+                ) VALUES ('legacy-target', 'legacy-lab', 'lab_vm', 'lab', 'LAB', 'now')
+            """)
+            conn.executescript(MIGRATIONS[2])
+            conn.execute(
+                "INSERT INTO schema_migrations(version, applied_at, description) "
+                "VALUES (2, '2026-10-05T00:00:00+00:00', 'migration_2')"
+            )
+            conn.execute("""
+                INSERT INTO assessment (
+                    assessment_id, target_id, assessment_date, start_time,
+                    tool_version, methodology_version, schema_version,
+                    scope, authorization_status
+                ) VALUES ('legacy-assessment', 'legacy-target', 'now', 'now',
+                          '1.0.0', '1.0', 3, 'OS', 'LAB')
+            """)
+            conn.commit()
+
+            assert migrate(conn) == 4
+            row = conn.execute(
+                "SELECT assessment_id, schema_version, metadata_json "
+                "FROM assessment WHERE assessment_id='legacy-assessment'"
+            ).fetchone()
+            assert row["assessment_id"] == "legacy-assessment"
+            assert row["schema_version"] == 3
+            assert row["metadata_json"] is None
         finally:
             conn.close()
 
@@ -243,6 +278,17 @@ class TestAssessment:
         assert a["scope"] == "ALL"
         assert a["tool_version"] == "1.0.0"
         assert a["schema_version"] == SCHEMA_VERSION
+
+    def test_assessment_metadata_is_stored_as_deterministic_json(self, db, target_id):
+        conn, _ = db
+        aid = create_assessment(
+            conn, target_id, "OS", "LAB",
+            metadata={"z": 2, "platform": {"family": "windows"}, "a": 1},
+        )
+        row = get_assessment(conn, aid)
+        assert row["metadata_json"] == (
+            '{"a": 1, "platform": {"family": "windows"}, "z": 2}'
+        )
 
     def test_invalid_target_id_rejected(self, db):
         conn, _ = db

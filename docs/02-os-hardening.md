@@ -1,21 +1,40 @@
 # OS Hardening Scan
 
-## What it checks
-The OS hardening module runs 6 local configuration checks against the
-host machine, inspired by CIS Benchmark categories:
+The scanner checks the machine on which it is running. It does not remotely
+inspect the operating system of an IP address supplied to the network scanner.
+An OS score for a lab VM therefore requires running the local OS assessment
+inside that VM; a remote Metasploitable network scan is a separate layer.
+For longitudinal database storage, bind the local run explicitly to an
+authorized target record. Without that binding, the scorer remains report-only.
 
-| Check | Severity |
-|-------|----------|
-| SSH root login disabled | High |
-| Password expiration ≤ 90 days | Medium |
-| Firewall (ufw/iptables) active | High |
-| No world-writable files | Medium |
-| Automatic security updates enabled | Medium |
-| Guest login account disabled | Low |
+## Versioned local control profiles
 
-Each check returns PASS/FAIL with a specific remediation recommendation.
-In the current version, applicable checks use severity weights (high=3,
-medium=2, low=1) to calculate the normalized OS score.
+The current scorer exposes platform-specific profiles. Their check sets and
+denominators differ; these are prototype indicators, not full benchmark
+compliance reports.
+
+| Profile | Checks | Live validation status |
+|---|---|---|
+| Linux (`linux_local_v1`) | SSH root-login setting; password max age; firewall; world-writable files; automatic updates; guest-login setting | Existing Linux checks; per-distribution and checklist mapping still needed |
+| Windows (`windows_local_v1`) | Domain/Private/Public firewall profiles; UAC `EnableLUA`; built-in Guest account | Unit-tested; current Windows environment denied two read-only queries, so no complete score was emitted |
+| macOS (`macos_local_v1`) | Application Firewall; FileVault; Gatekeeper; System Integrity Protection | Unit-tested only; native Mac validation is pending |
+
+PASS and FAIL findings contribute with the unchanged ordinal weights (high=3,
+medium=2, low=1). NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN are not failures.
+If any check returns ERROR, the profile preserves the finding but suppresses
+the aggregate OS score rather than presenting a misleading partial percentage.
+The report and each persisted assessment include the profile name and
+total/evaluated/error/N/A counts. The database also retains the OS release,
+build/version, architecture, and scoring-model version in the assessment's
+structured metadata. Each finding's `check_version` carries the versioned
+profile identifier. These fields improve traceability but do not replace a
+hash-verified raw-output manifest or benchmark/authorization provenance.
+
+The checks are not a certification of CIS, Microsoft, Apple, or NIST benchmark
+compliance. Exact source versions and control mappings must be selected and
+recorded before empirical collection. Compare before/after results within the
+same versioned machine instance. Do not rank Windows, Linux, Parrot, and macOS
+by raw scores when their controls or denominators differ.
 
 ## Usage (CLI)
 
@@ -28,8 +47,8 @@ python3 main.py
 
 The scores below are archived historical observations from an earlier scoring
 version. They are preserved as originally reported, not recomputed under the
-current severity-weighted method, and should not be compared directly with new
-version 1.2 scores without the original findings and scoring provenance.
+current model, and should not be compared directly with new version 1.3 scores
+without the original findings and scoring provenance.
 
 ### Windows host (baseline — unconfigured system)
 Score: **33/100** — typical for a default Windows/developer machine

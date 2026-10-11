@@ -268,3 +268,70 @@ The page warns that aggregates do not establish authorization or provenance.
 observations or presenting unvalidated data as paper-ready.
 **Tests:** Missing DB remains uncreated; populated DB returns aggregates,
 preserves assessment count, and does not render the target alias.
+
+## D-029 - Platform-specific local OS control profiles
+**Date:** 2026-10-11
+**Decision:** Begin the researcher-approved cross-platform before/after study
+with separate, versioned local control profiles: the existing Linux profile,
+Windows firewall/UAC/Guest checks, and macOS firewall/FileVault/Gatekeeper/SIP
+checks. OS checks assess only the machine on which the scorer runs; remote
+network findings for Metasploitable are a separate evidence layer. The profiles
+have different denominators and are not used to rank operating systems. Primary
+comparisons are within the same versioned machine instance; any cross-platform
+comparison must use a semantically matched subset and expose its coverage.
+Exact benchmark revisions and control mappings must be pinned before empirical
+collection. Historical Phase 5A records remain untouched.
+**Rationale:** Operating-system controls are platform-specific. Treating unlike
+checks as a common denominator or attributing a remote network scan to the
+remote OS would create invalid comparisons and target provenance.
+**Tests:** `tests/test_cross_platform_os_hardening.py` covers profile selection,
+native status parsing, error handling, and read-only command execution.
+
+## D-030 - Suppress OS scores when a profile has query errors
+**Date:** 2026-10-11
+**Decision:** Under scoring model 1.3, retain PASS/FAIL/ERROR/N/A findings, but
+emit no aggregate OS score if any profile query has status ERROR. Record total,
+evaluated, error, and N/A counts plus a suppression reason. Do not change
+severity weights or recalculate historical score snapshots.
+**Rationale:** A partial score can appear deceptively strong when key controls
+were not observable. On the first Windows smoke check, only one of three
+queries was readable; the earlier implementation would have shown 100/100.
+Suppressing it prevents an unsupported score from being mistaken for a complete
+assessment. Query errors are not security failures.
+**Tests:** The cross-platform profile tests and research-integrity tests assert
+that query errors suppress scores while preserving partial findings.
+
+## D-031 - Explicit target binding for local OS persistence
+**Date:** 2026-10-11
+**Decision:** A local OS-only run may be stored longitudinally only after the
+operator explicitly selects an existing target record that passes the normal
+authorization/reference check. If both the local profile and target record have
+a known OS family, a mismatch remains report-only. Blank or invalid bindings
+remain report-only.
+Combining local OS and remote network/web findings requires explicit bindings
+to the same target record; the application never infers identity from IP,
+hostname, or URL. This is additive and does not weaken active-scan gates.
+**Rationale:** Before/after measurements need a stable target identity. Treating
+the machine running the scorer as identical to a remote network target would
+corrupt attribution.
+**Tests:** `tests/test_assessment_scope.py`, `tests/test_os_target_binding.py`,
+and Flask persistence cases in `tests/test_phase3.py` cover unbound, authorized,
+same-target, and cross-target cases.
+
+## D-032 - Persist versioned OS collection context on assessments
+**Date:** 2026-10-11
+**Decision:** Schema version 4 adds nullable `assessment.metadata_json`. The
+scanner adapter stores an allowlisted OS context (family, release/build,
+architecture, control profile, scoring version, method/weights, and status
+denominators) even when query errors suppress the score and no score snapshot
+is created. Each OS finding records its versioned profile identifier in
+`check_version`. Migration preserves existing assessment rows and leaves their
+new metadata null; historical scores are not rewritten.
+**Rationale:** A result-only report is insufficient if normalized longitudinal
+records lose the platform/profile context needed to interpret a check sequence.
+The metadata is non-secret and additive. It does not replace the raw-output
+manifest, authorization evidence, or pinned benchmark mapping required for
+paper readiness.
+**Tests:** Schema-upgrade preservation, deterministic metadata serialization,
+and an errored OS assessment persisted without a score snapshot are covered by
+`tests/test_database.py` and `tests/test_os_target_binding.py`.

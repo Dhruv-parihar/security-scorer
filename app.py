@@ -16,10 +16,13 @@ Usage:
 from flask import Flask, render_template, request
 from modules import os_hardening, network_scan, webapp_scan, scoring
 from modules.authorization import check_authorization
-from modules.assessment_scope import validate_composite_scope
+from modules.assessment_scope import (
+    local_os_target_family_error,
+    validate_composite_scope,
+)
 from db.schema import initialize, seed_taxonomy
 from db.adapters import store_assessment_results
-from db.repository import list_targets, create_target, add_target_identifier
+from db.repository import list_targets, get_target, create_target, add_target_identifier
 from analysis.common import open_readonly
 from analysis.longitudinal import run_longitudinal_analysis
 from analysis.prevalence import run_full_analysis
@@ -135,6 +138,25 @@ def scan():
     # ── OS Hardening (no network target — no authorization check required) ──
     if "os_hardening" in layers_selected:
         layer_results["os_hardening"] = os_hardening.run()
+        local_identifier = request.form.get("os_target", "").strip()
+        if local_identifier:
+            authorized, tid, message = check_authorization(conn, local_identifier)
+            if authorized:
+                target = get_target(conn, tid)
+                family_error = local_os_target_family_error(
+                    layer_results["os_hardening"].get("os_family"),
+                    target["os_family"] if target else None,
+                )
+                if family_error:
+                    errors.append(
+                        "Local OS result was not bound or persisted: " + family_error
+                    )
+                else:
+                    target_ids["os_hardening"] = tid
+            else:
+                errors.append(
+                    "Local OS result was not bound or persisted: " + message
+                )
 
     # ── Network scan — authorization required ────────────────────────────────
     if "network" in layers_selected:

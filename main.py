@@ -24,10 +24,13 @@ from datetime import datetime
 
 from modules import os_hardening, network_scan, webapp_scan, scoring
 from modules.authorization import check_authorization, AuthorizationError
-from modules.assessment_scope import validate_composite_scope
+from modules.assessment_scope import (
+    local_os_target_family_error,
+    validate_composite_scope,
+)
 from db.schema import initialize, seed_taxonomy
 from db.adapters import store_assessment_results
-from db.repository import create_target, list_targets, add_target_identifier
+from db.repository import create_target, get_target, list_targets, add_target_identifier
 
 REPORTS_DIR = os.path.join(os.path.dirname(__file__), "reports")
 DB_PATH = os.path.join(os.path.dirname(__file__), "research.db")
@@ -52,6 +55,31 @@ def _resolve_target_id(conn, identifier):
     if not authorized:
         return None, message
     return target_id, None
+
+
+def bind_local_os_target(conn, local_os_family):
+    """Optionally bind a local OS result to an explicitly authorized target."""
+    identifier = input(
+        "Registered target alias/identifier for this local machine "
+        "(blank = report only): "
+    ).strip()
+    if not identifier:
+        print("[DB] Local OS result is not bound to a target; it will not be persisted.")
+        return None
+    target_id, error = _resolve_target_id(conn, identifier)
+    if error:
+        print(f"[DB] Local OS result will not be persisted: {error}")
+        return None
+    target = get_target(conn, target_id)
+    family_error = local_os_target_family_error(
+        local_os_family, target["os_family"] if target else None
+    )
+    if family_error:
+        print(f"[DB] Local OS result will not be persisted: {family_error}")
+        return None
+    alias = target["target_alias"] if target else target_id[:8]
+    print(f"[DB] Local OS result bound to authorized target '{alias}'.")
+    return target_id
 
 
 def _persist(conn, target_id, layer_results, composite):
@@ -85,6 +113,9 @@ def print_findings(findings):
         status_val = f.get("status") or ("PASS" if f.get("passed") else "FAIL")
         sev = (f.get("severity") or "-").upper()
         desc = f.get("description") or f.get("note") or f.get("id")
+        reason = f.get("not_applicable_reason")
+        if reason and status_val in ("ERROR", "NOT_APPLICABLE", "NOT_TESTED"):
+            desc = f"{desc} — {reason}"
         print(f"  [{status_val:15}] [{sev:8}] {desc}")
 
 
@@ -116,9 +147,22 @@ def run_os_hardening():
     """OS hardening — no network target, no authorization check required."""
     print_header("OS HARDENING SCAN")
     result = os_hardening.run()
-    print(f"Score: {result['score']}/100  "
-          f"(applicable: {result.get('applicable_checks', '?')}, "
-          f"n/a: {result.get('not_applicable_checks', 0)})\n")
+    print(
+        f"Platform: {result['os_family']} {result['platform_release']} "
+        f"(build {result['platform_version']}, {result['architecture']}) "
+        f"| profile {result['control_profile']}"
+    )
+    score_text = (
+        f"{result['score']}/100" if result["score"] is not None else "unavailable"
+    )
+    print(f"Score: {score_text}  "
+          f"(evaluated: {result.get('applicable_checks', 0)}/"
+          f"{result.get('total_checks', '?')}, "
+          f"errors: {result.get('error_checks', 0)}, "
+          f"n/a: {result.get('not_applicable_checks', 0)})")
+    if result.get("score_suppressed_reason"):
+        print(f"Score note: {result['score_suppressed_reason']}")
+    print()
     print_findings(result["findings"])
     return result
 
@@ -189,7 +233,7 @@ def manage_targets(conn):
         auth  = input("Authorization status [OWNED/LAB/EXPLICITLY_AUTHORIZED/CONSENTED_RESEARCH]: ").strip() or "LAB"
         os_f  = input("OS family [linux/windows/macos/unknown]: ").strip() or "unknown"
         os_n  = input("OS name (optional): ").strip() or None
-        ref   = input("Authorization reference (doc/ticket, optional): ").strip() or None
+        ref   = input("Authorization reference (needed for binding/scans; blank is report-only): ").strip() or None
         try:
             tid = create_target(conn, alias=alias, target_type=ttype,
                                 environment=env, authorization_status=auth,
@@ -227,6 +271,11 @@ def main():
 
     if choice == "1":
         layer_results["os_hardening"] = run_os_hardening()
+        local_target_id = bind_local_os_target(
+            conn, layer_results["os_hardening"].get("os_family")
+        )
+        if local_target_id:
+            target_ids["os_hardening"] = local_target_id
 
     elif choice == "2":
         target = input("Target IP: ").strip()
@@ -244,6 +293,11 @@ def main():
 
     elif choice == "4":
         layer_results["os_hardening"] = run_os_hardening()
+        local_target_id = bind_local_os_target(
+            conn, layer_results["os_hardening"].get("os_family")
+        )
+        if local_target_id:
+            target_ids["os_hardening"] = local_target_id
         net_target = input("\nTarget IP for network scan: ").strip()
         net_result, net_tid = run_network(conn, net_target)
         if net_result:

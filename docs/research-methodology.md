@@ -114,7 +114,7 @@ Severity is NULL for NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN findings.
 
 ## 5. Scoring Model
 
-### 5.1 Current Model: weighted_composite_v1 (version 1.2)
+### 5.1 Current Model: weighted_composite_v1 (version 1.3)
 
 The current scoring model is preserved as a baseline. It is NOT claimed
 to be empirically optimal — the weights were set by expert judgment.
@@ -147,16 +147,46 @@ from the composite and recorded as excluded; they are never converted to a
 score of zero. The network and web layers retain separately versioned severity
 penalty tables because their historical penalty policies differ.
 
-**OS layer scoring (introduced in model version 1.2):** Applicable OS checks
-with PASS or FAIL status receive ordinal severity weights: high = 3, medium = 2,
-and low = 1. The OS score is the nearest integer to
-`100 × (sum of weights for PASS checks / sum of weights for all applicable
-PASS/FAIL checks)`. NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN findings are
-excluded. An evaluated check with an unsupported or missing severity is rejected
-rather than silently assigned a weight. These ordinal weights are a transparent
-engineering judgment, not empirically calibrated values; conclusions must not
-claim that this weighting is objectively optimal. Historical score snapshots
-are retained as originally calculated and are not backfilled under this rule.
+**OS layer scoring:** Applicable checks with PASS or FAIL status receive
+ordinal severity weights: high = 3, medium = 2, and low = 1. The OS score is
+the nearest integer to `100 × (sum of weights for PASS checks / sum of weights
+for all applicable PASS/FAIL checks)`. NOT_APPLICABLE, NOT_TESTED, ERROR, and
+UNKNOWN findings are excluded. If any check returns ERROR, the finding is
+retained but the layer score is suppressed; a partial score could otherwise
+mislead when a profile was only partly observable. A profile with no evaluated
+checks also has no score. An evaluated check with an unsupported or missing
+severity is rejected rather than silently assigned a weight. These ordinal
+weights are a transparent engineering judgment, not empirically calibrated
+values; conclusions must not claim that this weighting is objectively optimal.
+
+Model 1.3 introduces versioned local control profiles: Linux (`linux_local_v1`,
+the six existing checks), Windows (`windows_local_v1`, three read-only checks
+for firewall profiles, UAC, and the built-in Guest account), and macOS
+(`macos_local_v1`, four read-only checks for Application Firewall, FileVault,
+Gatekeeper, and System Integrity Protection). Outputs include platform release,
+version, architecture, profile identifier, total/evaluated/error/N/A counts,
+and model version. The new profiles have deterministic unit coverage, but have
+not all been exercised on native devices; the macOS profile in particular
+requires a real authorized Mac for live validation. Profiles use different
+platform-specific control sets and denominators. Primary comparisons must be
+within the same instance before/after intervention; raw scores across platforms
+are not directly comparable. Any cross-platform summary must use a separately
+defined semantically matched control subset and show coverage.
+
+Local OS observations are persisted longitudinally only when the operator
+explicitly binds them to an existing authorized target record with a non-empty
+authorization reference. Without that binding, the CLI/web UI still produces a
+local report but does not add an assessment row to the research database.
+Combining a local OS result with remote network/web results is allowed only
+when each layer explicitly resolves to the same target record; target identity
+is never inferred from an IP or hostname. If the target record and the local
+profile both name an OS family, a mismatch blocks persistence.
+
+The profile names describe the current implementation; they do not certify
+conformance to a full CIS, Microsoft, Apple, or NIST benchmark. Exact benchmark
+revision and control mappings must be pinned before a study run. Historical
+score snapshots are retained as originally calculated and are not backfilled
+under model 1.3.
 
 **Web TLS checks (introduced in model version 1.2):** An HTTP scan URL is a
 FAIL for HTTPS transport; certificate and protocol checks are NOT_APPLICABLE.
@@ -181,6 +211,8 @@ is descriptive only and does not replace authorization/provenance preflight.
 - Network layer penalty accumulation means 3+ critical services → score 0
   with no differentiation between "bad" and "catastrophically bad"
 - OS ordinal severity weights are not empirically calibrated
+- OS profiles have different control denominators and are not a cross-OS
+  ranking; native Mac validation and pinned benchmark mappings remain pending
 - The scanner is a bounded indicator tool, not a vulnerability-completeness
   guarantee; raw observations and detector limitations must accompany results
 

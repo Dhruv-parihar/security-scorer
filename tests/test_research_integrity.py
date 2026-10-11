@@ -38,11 +38,17 @@ def snapshot(conn, aid, score, **kwargs):
         'layers': {'os_hardening': {'score': score}}}, **kwargs)
 
 
-def test_windows_has_no_evaluated_os_score():
-    with patch.object(os_hardening, '_detect_os', return_value='windows'):
+def test_windows_query_errors_do_not_emit_a_score(monkeypatch):
+    monkeypatch.setattr(os_hardening, '_detect_os', lambda: 'windows')
+    monkeypatch.setattr(
+        os_hardening, '_run_windows_powershell',
+        lambda _script: (False, '', 1),
+    )
+    with patch.object(os_hardening, '_run_macos_query'):
         result = os_hardening.run()
     assert result['score'] is None
     assert result['applicable_checks'] == 0
+    assert result['error_checks'] == 3
 
 
 def test_unevaluated_layer_does_not_lower_composite():

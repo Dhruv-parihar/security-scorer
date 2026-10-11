@@ -30,7 +30,9 @@ findings so existing CLI/Flask rendering is unaffected.
 import platform
 import subprocess
 import os
+import re
 from modules.scoring_config import OS_SEVERITY_WEIGHT, OS_SCORING_METHOD
+from modules.scoring_config import SCORING_MODEL_VERSION
 
 
 # ── OS detection ─────────────────────────────────────────────────────────────
@@ -55,6 +57,24 @@ def _run(cmd):
         ).stdout.strip()
     except Exception:
         return ""
+
+
+def _run_readonly_command(argv):
+    """Run a fixed, read-only platform query without a shell."""
+    try:
+        completed = subprocess.run(
+            argv, shell=False, capture_output=True, text=True, timeout=10,
+            errors="replace",
+        )
+    except Exception:
+        return False, "", None
+    return completed.returncode == 0, completed.stdout.strip(), completed.returncode
+
+
+def _run_windows_powershell(script):
+    return _run_readonly_command([
+        "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script
+    ])
 
 
 # ── Finding constructors ──────────────────────────────────────────────────────
@@ -225,6 +245,154 @@ def check_guest_account_disabled(os_family):
     return _pass(cid, desc, sev, rec) if passed else _fail(cid, desc, sev, rec)
 
 
+# ── Windows checks (read-only, local machine only) ───────────────────────────
+
+def check_windows_firewall(os_family):
+    cid = "windows_firewall_profiles"
+    desc = "Windows Firewall is enabled for Domain, Private, and Public profiles"
+    sev = "high"
+    rec = "Review the applicable Microsoft security baseline and enable the required firewall profiles."
+    if os_family != "windows":
+        return _not_applicable(cid, desc, f"Windows-only check (detected OS: {os_family})")
+
+    script = (
+        "$ErrorActionPreference='Stop'; "
+        "$p=Get-NetFirewallProfile -Profile Domain,Private,Public; "
+        "if (@($p).Count -ne 3) { throw 'Expected three firewall profiles' }; "
+        "$p | ForEach-Object { '{0}:{1}' -f $_.Name, $_.Enabled.ToString().ToLowerInvariant() }"
+    )
+    ok, output, returncode = _run_windows_powershell(script)
+    if not ok:
+        return _error(cid, desc, sev, rec, f"Read-only firewall query failed (exit code: {returncode})")
+
+    profiles = {}
+    for line in output.splitlines():
+        name, separator, enabled = line.strip().partition(":")
+        if separator and name in {"Domain", "Private", "Public"}:
+            profiles[name] = enabled.lower()
+    if set(profiles) != {"Domain", "Private", "Public"} or any(
+        value not in {"true", "false"} for value in profiles.values()
+    ):
+        return _error(cid, desc, sev, rec, "Firewall query returned incomplete or unrecognized profile data")
+    passed = all(value == "true" for value in profiles.values())
+    return _pass(cid, desc, sev, rec) if passed else _fail(cid, desc, sev, rec)
+
+
+def check_windows_uac_enabled(os_family):
+    cid = "windows_uac_enabled"
+    desc = "Windows User Account Control is enabled (EnableLUA=1)"
+    sev = "high"
+    rec = "Review the Microsoft UAC guidance and enable administrator approval mode using approved policy."
+    if os_family != "windows":
+        return _not_applicable(cid, desc, f"Windows-only check (detected OS: {os_family})")
+
+    script = (
+        "$ErrorActionPreference='Stop'; "
+        "$v=(Get-ItemProperty -Path 'HKLM:\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Policies\\System' "
+        "-Name EnableLUA -ErrorAction Stop).EnableLUA; "
+        "if ($null -eq $v) { throw 'EnableLUA is unavailable' }; [string]$v"
+    )
+    ok, output, returncode = _run_windows_powershell(script)
+    if not ok:
+        return _error(cid, desc, sev, rec, f"Read-only UAC query failed (exit code: {returncode})")
+    value = output.strip()
+    if value not in {"0", "1"}:
+        return _error(cid, desc, sev, rec, "UAC query returned an unrecognized value")
+    return _pass(cid, desc, sev, rec) if value == "1" else _fail(cid, desc, sev, rec)
+
+
+def check_windows_guest_disabled(os_family):
+    cid = "windows_guest_account_disabled"
+    desc = "The built-in Windows Guest account is disabled or absent"
+    sev = "low"
+    rec = "Review local account policy and prevent interactive sign-in to the built-in Guest account."
+    if os_family != "windows":
+        return _not_applicable(cid, desc, f"Windows-only check (detected OS: {os_family})")
+
+    script = (
+        "$ErrorActionPreference='Stop'; "
+        "$a=@(Get-CimInstance -ClassName Win32_UserAccount -Filter 'LocalAccount=True' | "
+        "Where-Object { $_.SID -match '-501$' }); "
+        "if ($a.Count -eq 0) { 'absent' } "
+        "elseif ($a.Count -ne 1) { throw 'Guest account query was ambiguous' } "
+        "else { $a[0].Disabled.ToString().ToLowerInvariant() }"
+    )
+    ok, output, returncode = _run_windows_powershell(script)
+    if not ok:
+        return _error(cid, desc, sev, rec, f"Read-only Guest account query failed (exit code: {returncode})")
+    value = output.strip().lower()
+    if value == "absent":
+        return _pass(cid, desc, sev, rec)
+    if value not in {"true", "false"}:
+        return _error(cid, desc, sev, rec, "Guest account query returned an unrecognized value")
+    return _pass(cid, desc, sev, rec) if value == "true" else _fail(cid, desc, sev, rec)
+
+
+# ── macOS checks (read-only, local machine only) ─────────────────────────────
+
+def _run_macos_query(argv):
+    return _run_readonly_command(argv)
+
+
+def _macos_boolean_check(os_family, cid, desc, severity, recommendation,
+                         argv, positive_patterns, negative_patterns):
+    if os_family != "macos":
+        return _not_applicable(cid, desc, f"macOS-only check (detected OS: {os_family})")
+    ok, output, returncode = _run_macos_query(argv)
+    if not ok:
+        return _error(cid, desc, severity, recommendation,
+                      f"Read-only macOS query failed (exit code: {returncode})")
+    normalized = output.strip().lower()
+    if any(re.search(pattern, normalized) for pattern in positive_patterns):
+        return _pass(cid, desc, severity, recommendation)
+    if any(re.search(pattern, normalized) for pattern in negative_patterns):
+        return _fail(cid, desc, severity, recommendation)
+    return _error(cid, desc, severity, recommendation,
+                  "macOS query returned unrecognized status text")
+
+
+def check_macos_firewall(os_family):
+    return _macos_boolean_check(
+        os_family, "macos_firewall_enabled",
+        "The macOS Application Firewall is enabled", "high",
+        "Review macOS Firewall settings and enable the Application Firewall if appropriate.",
+        ["/usr/libexec/ApplicationFirewall/socketfilterfw", "--getglobalstate"],
+        [r"firewall is enabled", r"state\s*=\s*1\b"],
+        [r"firewall is disabled", r"state\s*=\s*0\b"],
+    )
+
+
+def check_macos_filevault(os_family):
+    return _macos_boolean_check(
+        os_family, "macos_filevault_enabled",
+        "FileVault preboot authentication is enabled", "medium",
+        "Review Apple FileVault guidance and enable it through an approved recovery-key process.",
+        ["/usr/bin/fdesetup", "status"],
+        [r"filevault is on\b"], [r"filevault is off\b"],
+    )
+
+
+def check_macos_gatekeeper(os_family):
+    return _macos_boolean_check(
+        os_family, "macos_gatekeeper_enabled",
+        "macOS Gatekeeper assessments are enabled", "high",
+        "Review Gatekeeper policy and require trusted or identified applications as appropriate.",
+        ["/usr/sbin/spctl", "--status"],
+        [r"assessments enabled\b"], [r"assessments disabled\b"],
+    )
+
+
+def check_macos_sip(os_family):
+    return _macos_boolean_check(
+        os_family, "macos_sip_enabled",
+        "macOS System Integrity Protection is enabled", "high",
+        "Review Apple System Integrity Protection guidance; do not disable it without a documented need.",
+        ["/usr/bin/csrutil", "status"],
+        [r"system integrity protection status:\s*enabled\b"],
+        [r"system integrity protection status:\s*disabled\b"],
+    )
+
+
 CHECKS = [
     check_ssh_root_login,
     check_password_max_days,
@@ -233,6 +401,21 @@ CHECKS = [
     check_automatic_updates,
     check_guest_account_disabled,
 ]
+
+OS_CHECK_PROFILES = {
+    "linux": ("linux_local_v1", CHECKS),
+    "windows": ("windows_local_v1", [
+        check_windows_firewall,
+        check_windows_uac_enabled,
+        check_windows_guest_disabled,
+    ]),
+    "macos": ("macos_local_v1", [
+        check_macos_firewall,
+        check_macos_filevault,
+        check_macos_gatekeeper,
+        check_macos_sip,
+    ]),
+}
 
 
 def calculate_score(findings):
@@ -270,19 +453,42 @@ def run():
     This ensures NOT_APPLICABLE never reduces the score.
     """
     os_family = _detect_os()
-    findings = [check(os_family) for check in CHECKS]
+    profile = OS_CHECK_PROFILES.get(os_family)
+    if profile is None:
+        profile_id, checks = ("unsupported_local_v1", [])
+    else:
+        profile_id, checks = profile
+    findings = [check(os_family) for check in checks]
+    # The versioned profile is the unit of OS detector semantics used for
+    # longitudinal matching; bump the profile ID when its check logic changes.
+    for finding in findings:
+        finding.setdefault("check_version", profile_id)
 
     applicable = [f for f in findings if f["status"] in ("PASS", "FAIL")]
-    score = calculate_score(findings)
+    error_count = sum(1 for f in findings if f["status"] == "ERROR")
+    # A partial score can look deceptively strong when one or more controls
+    # could not be queried. Preserve findings, but suppress the layer score.
+    score = None if error_count else calculate_score(findings)
 
     return {
         "layer": "os_hardening",
         "os_family": os_family,
+        "platform_release": platform.release(),
+        "platform_version": platform.version(),
+        "architecture": platform.machine(),
+        "control_profile": profile_id,
+        "scoring_model_version": SCORING_MODEL_VERSION,
         "score": score,
+        "score_suppressed_reason": (
+            "One or more checks could not be evaluated; resolve ERROR findings before scoring."
+            if error_count else ("No PASS/FAIL checks were evaluated." if score is None else None)
+        ),
         "scoring_method": OS_SCORING_METHOD,
         "severity_weights": dict(OS_SEVERITY_WEIGHT),
         "findings": findings,
         "applicable_checks": len(applicable),
+        "total_checks": len(findings),
+        "error_checks": error_count,
         "not_applicable_checks": sum(
             1 for f in findings if f["status"] == "NOT_APPLICABLE"
         ),

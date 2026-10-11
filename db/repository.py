@@ -8,6 +8,7 @@ calls these functions after receiving scanner results.
 Design: thin repository pattern. No business logic here.
 """
 
+import json
 import uuid
 from datetime import datetime, timezone
 from db.schema import get_connection, FINDING_STATUSES, FINDING_LAYERS, AUTH_STATUSES, SCHEMA_VERSION
@@ -127,7 +128,7 @@ def list_target_identifiers(conn, target_id=None):
 def create_assessment(conn, target_id, scope, authorization_status,
                       tool_version="1.0.0", methodology_version="1.0",
                       schema_version=SCHEMA_VERSION, assessor=None, notes=None,
-                      start_time=None, end_time=None):
+                      start_time=None, end_time=None, metadata=None):
     """
     Create a new assessment record for a target.
     Returns assessment_id (UUID string).
@@ -148,11 +149,12 @@ def create_assessment(conn, target_id, scope, authorization_status,
         INSERT INTO assessment (
             assessment_id, target_id, assessment_date, start_time, end_time,
             tool_version, methodology_version, schema_version,
-            scope, authorization_status, assessor, notes
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
+            scope, authorization_status, assessor, notes, metadata_json
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
     """, (assessment_id, target_id, now, start_time or now, end_time,
           tool_version, methodology_version, schema_version,
-          scope, authorization_status, assessor, notes))
+          scope, authorization_status, assessor, notes,
+          json.dumps(metadata, sort_keys=True) if metadata is not None else None))
     conn.commit()
     return assessment_id
 

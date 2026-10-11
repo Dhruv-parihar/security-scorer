@@ -1,14 +1,14 @@
 # PROJECT STATE
 
 **Last updated:** 2026-10-11
-**Updated by:** Continuation implementation
-**Current branch:** phase/5a-results
+**Updated by:** Cross-platform OS study continuation and provenance hardening
+**Current branch:** phase/5b-cross-platform-os
 **Baseline branch:** main @ 6edab0a
 
 ---
 
 ## Current Phase
-CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
+PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PENDING
 
 ## Completed Work
 - [x] Phase 0: Repo audit (phase/0-audit @ d4977a1)
@@ -46,6 +46,21 @@ CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
 - [x] Approved continuation improvements: OS severity-weighted scoring (model
   version 1.2), verified TLS/certificate findings for web scans, and an
   aggregate read-only research dashboard. Historical scores remain unchanged.
+- [ ] Phase 5B: platform-specific Windows and macOS OS profiles added in model
+  1.3; Linux profile retained. The profile code and error-suppression rule pass
+  unit tests, but native Mac validation and version-pinned benchmark mapping
+  remain pending.
+- [x] Phase 5B data linkage: CLI and Flask can explicitly bind a local OS-only
+  run to an authorized target; report-only remains the default. Mixed local and
+  remote layers can persist only when explicitly bound to the same target.
+- [x] Phase 5B integrity guard: any OS profile query ERROR suppresses the
+  aggregate score while retaining findings and denominator counts. Historical
+  scores were not recomputed.
+- [x] Phase 5B schema v4: persisted assessment metadata now captures OS family,
+  release/build, architecture, control profile, scoring model/method, weights,
+  and PASS/FAIL/error/N/A denominators. OS findings retain their versioned
+  profile ID in `check_version`, including errored runs with no score snapshot.
+  The migration preserves existing assessments and does not rewrite Phase 5A.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -66,8 +81,10 @@ CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
 - tests/test_phase4a.py:   39 tests — PASS (Phase 4A)
 - tests/test_phase4b.py:   54 tests — PASS (Phase 4B)
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
-- Latest full-suite verification after the approved improvements: 268 passed,
-  1 expected Linux-only skip (Python 3.12.14 on Windows).
+- Pre-change baseline on this checkout: 268 passed, 1 expected Linux-only skip.
+- Latest full-suite verification after platform profiles, local-target linkage,
+  OS-family mismatch protection, and schema-v4 collection metadata: 312 passed,
+  1 expected Linux-only skip in 11.13 seconds (Python 3.12 on Windows).
 - Fresh verification on 2026-10-10 used Python 3.12.14 on Windows; all
   installed packages matched `requirements-dev.lock`. Pytest used a fresh,
   writable workspace temp directory because the default Windows temp path was
@@ -108,6 +125,23 @@ CONTINUATION IMPROVEMENTS - IMPLEMENTED; EMPIRICAL EVIDENCE PENDING
   checks locally on Parrot and is blocked from combining them with remote
   Metasploitable results by the one-target scope guard. No scan or observation
   was created; a web target URL is also unconfirmed.
+- Phase 5B Windows smoke check (2026-10-11): local runtime identified Windows
+  11 build `10.0.26200`, AMD64. The UAC registry query returned PASS; firewall
+  and Guest-account queries returned Access Denied/ERROR. The revised model
+  therefore returned `score: null` with 1/3 controls evaluated. This was a
+  diagnostic smoke check only: no raw observation was persisted, no settings
+  were changed, and it is not a paper result. Do not elevate the scanner process
+  automatically; a researcher-run elevated read-only collection needs a
+  separate explicit choice and provenance record.
+- Phase 5B code is uncommitted on `phase/5b-cross-platform-os`. Initial Windows
+  and macOS profile logic has mocked unit tests; no native Mac, Parrot, Ubuntu,
+  or Metasploitable OS-hardening assessment was collected. Remember that remote
+  Metasploitable network scans do not score its local OS configuration.
+- The Windows/macOS profile checks still need pinned benchmark/control
+  mappings and setting-specific evidence capture before provenance preflight
+  can mark new cross-platform observations paper-ready. The new metadata field
+  improves context preservation; it is not a substitute for raw command output
+  artifacts or independent ground truth.
 - Durable Git checkpoints `3ff69af`, `eea35e7`, `28b88ec`, `bc5096a`,
   `9a48a70`, `cf5525c`, and `34b7f3d` were selectively staged and pushed to
   `origin/phase/5a-results`. The connected GitHub integration still cannot

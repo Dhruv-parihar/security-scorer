@@ -222,8 +222,9 @@ class TestR2R3OSNotApplicable:
             result = check_fn("macos")
             assert result["status"] == "NOT_APPLICABLE"
 
-    def test_not_applicable_excluded_from_score(self):
+    def test_not_applicable_excluded_from_score(self, monkeypatch):
         """Score computed from os_hardening.run() must exclude NOT_APPLICABLE."""
+        monkeypatch.setattr("modules.os_hardening._detect_os", lambda: "unknown")
         result = os_run()
         findings = result["findings"]
         na_findings = [f for f in findings if f["status"] == "NOT_APPLICABLE"]
@@ -272,7 +273,8 @@ class TestR2R3OSNotApplicable:
             # (NOT_APPLICABLE is still valid if e.g. sshd not installed)
             assert r["status"] in ("PASS", "FAIL", "NOT_APPLICABLE")
 
-    def test_run_result_contains_os_family(self):
+    def test_run_result_contains_os_family(self, monkeypatch):
+        monkeypatch.setattr("modules.os_hardening._detect_os", lambda: "unknown")
         result = os_run()
         assert "os_family" in result
         assert result["os_family"] in ("linux", "windows", "macos", "unknown")
