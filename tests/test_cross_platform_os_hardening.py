@@ -156,6 +156,13 @@ def test_run_selects_windows_profile_and_reports_denominators(monkeypatch):
     monkeypatch.setattr(os_hardening, "_detect_os", lambda: "windows")
 
     def fake_powershell(script):
+        if "Windows NT" in script:
+            return True, (
+                '{"product_name":"Windows 10 Home Single Language",'
+                '"display_version":"25H2","edition_id":"CoreSingleLanguage",'
+                '"installation_type":"Client","current_build":"26200",'
+                '"update_build":"9457"}'
+            ), 0
         if "Get-NetFirewallProfile" in script:
             return True, "Domain:true\nPrivate:true\nPublic:true", 0
         if "EnableLUA" in script:
@@ -172,12 +179,17 @@ def test_run_selects_windows_profile_and_reports_denominators(monkeypatch):
     assert result["applicable_checks"] == result["total_checks"] == 3
     assert result["error_checks"] == 0
     assert len(result["findings"]) == 3
+    assert result["platform_identity"]["display_version"] == "25H2"
+    assert result["platform_identity"]["current_build"] == "26200"
+    assert result["platform_identity"]["edition_id"] == "CoreSingleLanguage"
 
 
 def test_run_suppresses_partial_score_when_a_check_has_error(monkeypatch):
     monkeypatch.setattr(os_hardening, "_detect_os", lambda: "windows")
 
     def partial_powershell(script):
+        if "Windows NT" in script:
+            return False, "", 5
         if "Get-NetFirewallProfile" in script:
             return True, "Domain:true\nPrivate:true\nPublic:true", 0
         if "EnableLUA" in script:
@@ -193,6 +205,83 @@ def test_run_suppresses_partial_score_when_a_check_has_error(monkeypatch):
     assert result["total_checks"] == 3
     assert result["error_checks"] == 1
     assert result["score_suppressed_reason"]
+
+
+def test_platform_identity_query_error_does_not_suppress_control_score(monkeypatch):
+    monkeypatch.setattr(os_hardening, "_detect_os", lambda: "windows")
+
+    def fake_powershell(script):
+        if "Windows NT" in script:
+            return False, "", 5
+        if "Get-NetFirewallProfile" in script:
+            return True, "Domain:true\nPrivate:true\nPublic:true", 0
+        if "EnableLUA" in script:
+            return True, "1", 0
+        if "Win32_UserAccount" in script:
+            return True, "true", 0
+        raise AssertionError("Unexpected PowerShell query")
+
+    monkeypatch.setattr(os_hardening, "_run_windows_powershell", fake_powershell)
+    result = os_hardening.run()
+    assert result["score"] == 100
+    assert result["error_checks"] == 0
+    assert result["platform_identity"]["edition_query_status"] == "unavailable"
+
+
+def test_platform_identity_collection_exception_does_not_break_scan(monkeypatch):
+    monkeypatch.setattr(os_hardening, "_detect_os", lambda: "windows")
+    monkeypatch.setattr(os_hardening, "_platform_identity", lambda _family: 1 / 0)
+    def passed(check_id, severity):
+        return lambda _family: os_hardening._pass(
+            check_id, check_id, severity, ""
+        )
+    monkeypatch.setitem(
+        os_hardening.OS_CHECK_PROFILES,
+        "windows",
+        ("windows_local_v1", [
+            passed("firewall", "high"), passed("uac", "high"),
+            passed("guest", "low"),
+        ]),
+    )
+    result = os_hardening.run()
+    assert result["score"] == 100
+    assert result["platform_identity"] == {"collection_status": "unavailable"}
+
+
+def test_linux_platform_identity_records_distribution_fields(monkeypatch):
+    monkeypatch.setattr(os_hardening.platform, "system", lambda: "Linux")
+    monkeypatch.setattr(os_hardening.platform, "release", lambda: "6.8.0")
+    monkeypatch.setattr(os_hardening.platform, "version", lambda: "test-kernel")
+    monkeypatch.setattr(os_hardening.platform, "machine", lambda: "x86_64")
+    monkeypatch.setattr(
+        os_hardening.platform, "freedesktop_os_release",
+        lambda: {"ID": "parrot", "NAME": "Parrot OS", "VERSION_ID": "7"},
+        raising=False,
+    )
+    identity = os_hardening._platform_identity("linux")
+    assert identity["distribution"]["id"] == "parrot"
+    assert identity["distribution"]["name"] == "Parrot OS"
+    assert identity["distribution"]["version_id"] == "7"
+    assert identity["distribution_query_status"] == "available"
+
+
+def test_macos_platform_identity_uses_version_and_model_without_secrets(monkeypatch):
+    monkeypatch.setattr(os_hardening.platform, "system", lambda: "Darwin")
+    monkeypatch.setattr(os_hardening.platform, "release", lambda: "25.0.0")
+    monkeypatch.setattr(os_hardening.platform, "version", lambda: "Darwin Kernel")
+    monkeypatch.setattr(os_hardening.platform, "machine", lambda: "arm64")
+    monkeypatch.setattr(
+        os_hardening.platform, "mac_ver",
+        lambda: ("26.0", ("", "", ""), "arm64"),
+    )
+    monkeypatch.setattr(
+        os_hardening, "_run_readonly_command",
+        lambda argv: (True, "Mac16,1", 0),
+    )
+    identity = os_hardening._platform_identity("macos")
+    assert identity["product_version"] == "26.0"
+    assert identity["hardware_model"] == "Mac16,1"
+    assert "serial" not in identity
 
 
 def test_unknown_os_does_not_receive_a_fabricated_score(monkeypatch):

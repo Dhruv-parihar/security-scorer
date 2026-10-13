@@ -321,12 +321,14 @@ same-target, and cross-target cases.
 ## D-032 - Persist versioned OS collection context on assessments
 **Date:** 2026-10-11
 **Decision:** Schema version 4 adds nullable `assessment.metadata_json`. The
-scanner adapter stores an allowlisted OS context (family, release/build,
-architecture, control profile, scoring version, method/weights, and status
-denominators) even when query errors suppress the score and no score snapshot
-is created. Each OS finding records its versioned profile identifier in
-`check_version`. Migration preserves existing assessment rows and leaves their
-new metadata null; historical scores are not rewritten.
+scanner adapter stores an allowlisted OS context (family, distribution or
+product/edition/build, architecture, control profile, scoring version,
+method/weights, and status denominators) even when query errors suppress the
+score and no score snapshot is created. Supporting identity-query failures are
+marked unavailable and do not affect control scores. Each OS finding records
+its versioned profile identifier in `check_version`. Migration preserves
+existing assessment rows and leaves their new metadata null; historical scores
+are not rewritten.
 **Rationale:** A result-only report is insufficient if normalized longitudinal
 records lose the platform/profile context needed to interpret a check sequence.
 The metadata is non-secret and additive. It does not replace the raw-output

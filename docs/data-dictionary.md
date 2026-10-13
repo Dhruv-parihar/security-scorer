@@ -1,6 +1,6 @@
 # Data Dictionary — Security Scoring Framework Research Database
 **Schema version:** 4
-**Last updated:** 2026-10-11
+**Last updated:** 2026-10-13
 
 ---
 
@@ -117,7 +117,7 @@ One assessment run against one target at one point in time.
 | authorization_status | TEXT | Must be valid AUTH_STATUS and exactly match the parent target authorization record |
 | assessor | TEXT | Anonymized assessor identifier |
 | notes | TEXT | Free-text notes |
-| metadata_json | TEXT | Structured, allowlisted collection context such as local OS family/build, control profile, scoring version, and check denominators; not credentials or raw target identifiers |
+| metadata_json | TEXT | Structured, allowlisted collection context such as OS family, Linux distribution, Windows product/edition/build, macOS version/model, control profile, scoring version, and check denominators; not credentials or raw target identifiers |
 
 The v3-to-v4 migration adds `metadata_json` without altering existing
 assessments. The field is retained even when a query error suppresses an

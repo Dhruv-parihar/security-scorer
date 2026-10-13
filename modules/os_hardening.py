@@ -31,6 +31,7 @@ import platform
 import subprocess
 import os
 import re
+import json
 from modules.scoring_config import OS_SEVERITY_WEIGHT, OS_SCORING_METHOD
 from modules.scoring_config import SCORING_MODEL_VERSION
 
@@ -75,6 +76,82 @@ def _run_windows_powershell(script):
     return _run_readonly_command([
         "powershell.exe", "-NoProfile", "-NonInteractive", "-Command", script
     ])
+
+
+def _platform_identity(os_family):
+    """Collect allowlisted OS identity fields without affecting control scores.
+
+    Identity collection is supporting provenance, not a security control. If
+    its platform query is unavailable, the partial identity is retained with
+    a status marker and the check results remain usable.
+    """
+    identity = {
+        "system": platform.system(),
+        "release": platform.release(),
+        "version": platform.version(),
+        "architecture": platform.machine(),
+    }
+
+    if os_family == "linux":
+        getter = getattr(platform, "freedesktop_os_release", None)
+        try:
+            release = getter() if getter else {}
+        except Exception:
+            release = {}
+            identity["distribution_query_status"] = "unavailable"
+        else:
+            identity["distribution_query_status"] = "available" if release else "unavailable"
+        identity["distribution"] = {
+            output_key: release.get(source_key)
+            for output_key, source_key in (
+                ("id", "ID"), ("name", "NAME"),
+                ("pretty_name", "PRETTY_NAME"),
+                ("version_id", "VERSION_ID"),
+                ("version_codename", "VERSION_CODENAME"),
+            )
+        }
+    elif os_family == "windows":
+        script = (
+            "$ErrorActionPreference='Stop'; "
+            "$p=Get-ItemProperty -LiteralPath 'HKLM:\\SOFTWARE\\Microsoft\\Windows NT\\CurrentVersion'; "
+            "$r=[ordered]@{ product_name=[string]$p.ProductName; "
+            "display_version=[string]$p.DisplayVersion; edition_id=[string]$p.EditionID; "
+            "installation_type=[string]$p.InstallationType; "
+            "current_build=[string]$p.CurrentBuildNumber; update_build=[string]$p.UBR }; "
+            "ConvertTo-Json -InputObject $r -Compress"
+        )
+        ok, output, returncode = _run_windows_powershell(script)
+        if ok:
+            try:
+                values = json.loads(output)
+            except (TypeError, ValueError):
+                values = None
+            if isinstance(values, dict):
+                identity.update({
+                    key: str(values.get(key) or "") or None
+                    for key in (
+                        "product_name", "display_version", "edition_id",
+                        "installation_type", "current_build", "update_build",
+                    )
+                })
+                identity["edition_query_status"] = "available"
+            else:
+                identity["edition_query_status"] = "unrecognized_response"
+        else:
+            identity["edition_query_status"] = "unavailable"
+            identity["edition_query_exit_code"] = returncode
+    elif os_family == "macos":
+        identity["product_version"] = platform.mac_ver()[0] or None
+        ok, model, returncode = _run_readonly_command(
+            ["/usr/sbin/sysctl", "-n", "hw.model"]
+        )
+        identity["hardware_model"] = model if ok and model else None
+        identity["hardware_model_query_status"] = (
+            "available" if ok and model else "unavailable"
+        )
+        if not (ok and model):
+            identity["hardware_model_query_exit_code"] = returncode
+    return identity
 
 
 # ── Finding constructors ──────────────────────────────────────────────────────
@@ -459,6 +536,13 @@ def run():
     else:
         profile_id, checks = profile
     findings = [check(os_family) for check in checks]
+    try:
+        platform_identity = _platform_identity(os_family)
+    except Exception:
+        # Provenance collection must never turn a completed control run into
+        # a failed assessment. Keep the absence explicit without storing
+        # exception text that might contain environment-specific details.
+        platform_identity = {"collection_status": "unavailable"}
     # The versioned profile is the unit of OS detector semantics used for
     # longitudinal matching; bump the profile ID when its check logic changes.
     for finding in findings:
@@ -473,6 +557,7 @@ def run():
     return {
         "layer": "os_hardening",
         "os_family": os_family,
+        "platform_identity": platform_identity,
         "platform_release": platform.release(),
         "platform_version": platform.version(),
         "architecture": platform.machine(),

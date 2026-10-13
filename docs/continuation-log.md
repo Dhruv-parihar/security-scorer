@@ -96,6 +96,27 @@ These are new continuation work packages, not a reconstruction of an unavailable
     `git diff --check` is clean. Existing v3 rows are preserved with null
     metadata; historical scores and Phase 5A artifacts are untouched.
 
+37. Created durable checkpoint `29691b9aae56701c9fef6a2f14f3797943d3297b`
+    and pushed it to new branch `origin/phase/5b-cross-platform-os`. The local
+    and remote branch heads were read back and match. GitHub's commit-status
+    endpoint returned zero statuses; no CI success is claimed. The normal push
+    could not access Windows credentials, so the same non-force branch push was
+    completed with scoped Git permission. The seven archived handoff folders
+    remain untracked and excluded; no pull request was opened.
+
+38. Added allowlisted platform identity to OS scan reports and schema-v4
+    assessment metadata: Linux distribution fields, Windows product/edition/
+    display version/build, and macOS product version/hardware model when
+    available. Identity-query errors are non-scoring metadata failures and do
+    not alter control results. The native read-only Windows identity query
+    confirmed Windows 11 25H2, build 26200, CoreSingleLanguage; this identifies
+    the development host but is not a retained research observation. Official
+    source review recorded version-specific candidate baselines for Windows,
+    Ubuntu, macOS, and Parrot without claiming the prototype checks implement
+    them. Focused tests passed 87/87; full suite passed 316 with one expected
+    Linux-only skip in 4.07 seconds. No VM, active scan, empirical record, or
+    historical result was changed. Code/document edits are not yet committed.
+
 ## Measurement policy
 
 Record actual tool and test outcomes and required human interventions. The prior workflow is known from the researcher's description; historical timing and cost were not measured. Do not report an invented speedup, labor saving, or model-quality comparison.

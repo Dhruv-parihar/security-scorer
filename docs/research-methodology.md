@@ -165,7 +165,11 @@ for firewall profiles, UAC, and the built-in Guest account), and macOS
 (`macos_local_v1`, four read-only checks for Application Firewall, FileVault,
 Gatekeeper, and System Integrity Protection). Outputs include platform release,
 version, architecture, profile identifier, total/evaluated/error/N/A counts,
-and model version. The new profiles have deterministic unit coverage, but have
+and model version. An allowlisted `platform_identity` also records Linux
+distribution/release, Windows product/edition/display-version/build, or macOS
+product version/hardware model when available. Identity-query failures are
+marked unavailable and do not change control results or scores. The new
+profiles have deterministic unit coverage, but have
 not all been exercised on native devices; the macOS profile in particular
 requires a real authorized Mac for live validation. Profiles use different
 platform-specific control sets and denominators. Primary comparisons must be

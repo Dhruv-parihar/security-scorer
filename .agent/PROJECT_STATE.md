@@ -1,7 +1,7 @@
 # PROJECT STATE
 
-**Last updated:** 2026-10-11
-**Updated by:** Cross-platform OS study continuation and provenance hardening
+**Last updated:** 2026-10-13
+**Updated by:** Cross-platform OS identity metadata and benchmark-source review
 **Current branch:** phase/5b-cross-platform-os
 **Baseline branch:** main @ 6edab0a
 
@@ -46,10 +46,11 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
 - [x] Approved continuation improvements: OS severity-weighted scoring (model
   version 1.2), verified TLS/certificate findings for web scans, and an
   aggregate read-only research dashboard. Historical scores remain unchanged.
-- [ ] Phase 5B: platform-specific Windows and macOS OS profiles added in model
-  1.3; Linux profile retained. The profile code and error-suppression rule pass
-  unit tests, but native Mac validation and version-pinned benchmark mapping
-  remain pending.
+- [x] Phase 5B prototype: platform-specific Windows and macOS OS profiles
+  added in model 1.3; Linux profile retained. Platform identity metadata and
+  non-scoring identity-query failures are covered by unit tests. The study is
+  still incomplete: native Mac validation, exact benchmark mappings, and
+  authorized before/after measurements remain pending.
 - [x] Phase 5B data linkage: CLI and Flask can explicitly bind a local OS-only
   run to an authorized target; report-only remains the default. Mixed local and
   remote layers can persist only when explicitly bound to the same target.
@@ -61,6 +62,13 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
   and PASS/FAIL/error/N/A denominators. OS findings retain their versioned
   profile ID in `check_version`, including errored runs with no score snapshot.
   The migration preserves existing assessments and does not rewrite Phase 5A.
+- [x] Phase 5B platform identity: reports and persisted assessment metadata
+  include Linux distribution/release, Windows product/edition/display
+  version/build, or macOS product version/hardware model when available.
+  Identity fields are allowlisted; identity query failures do not affect
+  control scoring. A native read-only Windows registry query confirmed the
+  development host is Windows 11 25H2, build 26200, edition
+  CoreSingleLanguage. This is environment identification, not a research run.
 
 ## Phase 4B Deliverables
 - analysis/prevalence.py:
@@ -83,13 +91,16 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
 - Historical Phase 4B count: 195/195 PASS. This is not the current count.
 - Pre-change baseline on this checkout: 268 passed, 1 expected Linux-only skip.
 - Latest full-suite verification after platform profiles, local-target linkage,
-  OS-family mismatch protection, and schema-v4 collection metadata: 312 passed,
-  1 expected Linux-only skip in 11.13 seconds (Python 3.12 on Windows).
+  OS-family mismatch protection, schema-v4 collection metadata, and platform
+  identity capture: 316 passed, 1 expected Linux-only skip in 4.07 seconds
+  (Python 3.12.14 on Windows; `pytest.main(['-q'])` in-process invocation).
 - Fresh verification on 2026-10-10 used Python 3.12.14 on Windows; all
   installed packages matched `requirements-dev.lock`. Pytest used a fresh,
   writable workspace temp directory because the default Windows temp path was
   inaccessible to this execution session.
-- Command: python -m pytest -q -p no:cacheprovider
+- Canonical suite discovery remains `python -m pytest -q -p no:cacheprovider`;
+  the 13 Oct verification used the equivalent in-process pytest invocation to
+  obtain an authoritative completion status from this Windows runner.
 
 ## Key Research Properties (all verified by tests)
 - Denominator = PASS+FAIL only; NOT_APPLICABLE/NOT_TESTED/ERROR/UNKNOWN excluded
@@ -133,10 +144,14 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
   were changed, and it is not a paper result. Do not elevate the scanner process
   automatically; a researcher-run elevated read-only collection needs a
   separate explicit choice and provenance record.
-- Phase 5B code is uncommitted on `phase/5b-cross-platform-os`. Initial Windows
-  and macOS profile logic has mocked unit tests; no native Mac, Parrot, Ubuntu,
-  or Metasploitable OS-hardening assessment was collected. Remember that remote
-  Metasploitable network scans do not score its local OS configuration.
+- Phase 5B code is committed and pushed as
+  `29691b9aae56701c9fef6a2f14f3797943d3297b` on
+  `phase/5b-cross-platform-os`; local and origin refs match. GitHub's commit
+  status endpoint returned zero statuses, so CI success is not claimed. Initial
+  Windows/macOS profile logic has mocked unit tests; no native Mac, Parrot,
+  Ubuntu, or Metasploitable OS-hardening assessment was collected. Remember
+  that remote Metasploitable network scans do not score its local OS
+  configuration.
 - The Windows/macOS profile checks still need pinned benchmark/control
   mappings and setting-specific evidence capture before provenance preflight
   can mark new cross-platform observations paper-ready. The new metadata field
@@ -144,6 +159,6 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
   artifacts or independent ground truth.
 - Durable Git checkpoints `3ff69af`, `eea35e7`, `28b88ec`, `bc5096a`,
   `9a48a70`, `cf5525c`, and `34b7f3d` were selectively staged and pushed to
-  `origin/phase/5a-results`. The connected GitHub integration still cannot
-  create a new branch, but elevated local Git access permitted the existing
-  tracked branch to be updated. Archived handoff directories remain untracked.
+  `origin/phase/5a-results`. A scoped local Git push created the Phase 5B
+  branch after the integration's branch-write path was unavailable. Archived
+  handoff directories remain untracked and excluded.

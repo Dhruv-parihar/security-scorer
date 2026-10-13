@@ -101,6 +101,10 @@ def test_os_profile_context_and_version_persist_without_a_score_snapshot():
     )
     os_result = {
         "layer": "os_hardening", "os_family": "windows",
+        "platform_identity": {
+            "system": "Windows", "display_version": "25H2",
+            "edition_id": "CoreSingleLanguage", "current_build": "26200",
+        },
         "platform_release": "11", "platform_version": "10.0.26200",
         "architecture": "AMD64", "control_profile": "windows_local_v1",
         "scoring_model_version": "1.3",
@@ -128,6 +132,7 @@ def test_os_profile_context_and_version_persist_without_a_score_snapshot():
     metadata = json.loads(assessment["metadata_json"])
     assert metadata["layers"]["os_hardening"]["control_profile"] == "windows_local_v1"
     assert metadata["layers"]["os_hardening"]["platform_version"] == "10.0.26200"
+    assert metadata["layers"]["os_hardening"]["platform_identity"]["display_version"] == "25H2"
     assert metadata["layers"]["os_hardening"]["error_checks"] == 1
     finding = conn.execute(
         "SELECT check_version, status FROM finding WHERE assessment_id=?",

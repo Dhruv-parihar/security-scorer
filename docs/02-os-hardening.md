@@ -24,11 +24,14 @@ medium=2, low=1). NOT_APPLICABLE, NOT_TESTED, ERROR, and UNKNOWN are not failure
 If any check returns ERROR, the profile preserves the finding but suppresses
 the aggregate OS score rather than presenting a misleading partial percentage.
 The report and each persisted assessment include the profile name and
-total/evaluated/error/N/A counts. The database also retains the OS release,
-build/version, architecture, and scoring-model version in the assessment's
-structured metadata. Each finding's `check_version` carries the versioned
-profile identifier. These fields improve traceability but do not replace a
-hash-verified raw-output manifest or benchmark/authorization provenance.
+total/evaluated/error/N/A counts. The report and database also retain
+allowlisted platform identity: Linux distribution/release, Windows product,
+edition, display version and build, or macOS product version and hardware
+model, when the local read-only query is available. Identity-query failures
+are marked as missing metadata and do not alter a control score. Each
+finding's `check_version` carries the versioned profile identifier. These
+fields improve traceability but do not replace a hash-verified raw-output
+manifest or benchmark/authorization provenance.
 
 The checks are not a certification of CIS, Microsoft, Apple, or NIST benchmark
 compliance. Exact source versions and control mappings must be selected and

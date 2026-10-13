@@ -113,6 +113,7 @@ def _assessment_metadata(layer_results):
         return None
     fields = (
         "os_family", "platform_release", "platform_version", "architecture",
+        "platform_identity",
         "control_profile", "scoring_model_version", "scoring_method",
         "severity_weights", "total_checks", "applicable_checks",
         "error_checks", "not_applicable_checks", "score_suppressed_reason",

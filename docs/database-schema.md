@@ -1,6 +1,6 @@
 # Database Schema Reference
-**Schema version:** 3
-**Last updated:** 2026-10-05
+**Schema version:** 4
+**Last updated:** 2026-10-13
 
 ## Entity-Relationship Summary
 
@@ -39,6 +39,10 @@ taxonomy ──── (N) finding
    case-insensitive mapping to one target. The system never infers that an IP,
    hostname, and URL represent the same target. Identifier metadata is local
    sensitive data and must be removed or pseudonymized before release.
+
+6. `assessment.metadata_json` stores allowlisted collection context such as OS
+   release/build, platform identity, profile/scoring versions, and status
+   denominators. It supplements but does not replace the raw-output manifest.
 
 ## Migration Strategy
 
