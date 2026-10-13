@@ -117,6 +117,25 @@ These are new continuation work packages, not a reconstruction of an unavailable
     Linux-only skip in 4.07 seconds. No VM, active scan, empirical record, or
     historical result was changed. Code/document edits are not yet committed.
 
+39. Re-ran the full suite on 13 October: 316 passed, 1 expected Linux-only
+    skip in 2.99 seconds. Staged only the reviewed platform-identity source,
+    tests, and project documentation; `git diff --cached --check` was clean,
+    and all seven user handoff folders remained unstaged. Committed as
+    `262f5d84cdab8128ef5fdaea038db783558fd320` and pushed non-force to the
+    existing `phase/5b-cross-platform-os` branch. GitHub commit readback
+    confirms the checkpoint; it has zero status checks, so CI success is not
+    claimed. Test-generated temporary fixtures were removed after verifying
+    their exact `pytest-of-parih` scratch path. No live scan, VM edit, research
+    observation, or historical-data change was made.
+
+40. Updated the existing IEEE LaTeX source and Word companion in the local
+    handoff workspace with model 1.3, current test evidence, score-comparability
+    limits, and the platform pilot protocol. The built-in LaTeX compiler
+    succeeded. DOCX rendering could not proceed because LibreOffice is
+    unavailable, so current layout is not claimed as visually verified. No
+    replacement paper or PDF was created, and no new empirical result was
+    added.
+
 ## Measurement policy
 
 Record actual tool and test outcomes and required human interventions. The prior workflow is known from the researcher's description; historical timing and cost were not measured. Do not report an invented speedup, labor saving, or model-quality comparison.

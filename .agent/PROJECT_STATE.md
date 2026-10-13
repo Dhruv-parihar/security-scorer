@@ -92,7 +92,7 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
 - Pre-change baseline on this checkout: 268 passed, 1 expected Linux-only skip.
 - Latest full-suite verification after platform profiles, local-target linkage,
   OS-family mismatch protection, schema-v4 collection metadata, and platform
-  identity capture: 316 passed, 1 expected Linux-only skip in 4.07 seconds
+  identity capture: 316 passed, 1 expected Linux-only skip in 2.99 seconds
   (Python 3.12.14 on Windows; `pytest.main(['-q'])` in-process invocation).
 - Fresh verification on 2026-10-10 used Python 3.12.14 on Windows; all
   installed packages matched `requirements-dev.lock`. Pytest used a fresh,
@@ -144,13 +144,13 @@ PHASE 5B CROSS-PLATFORM OS PILOT — IMPLEMENTATION IN PROGRESS; MEASUREMENTS PE
   were changed, and it is not a paper result. Do not elevate the scanner process
   automatically; a researcher-run elevated read-only collection needs a
   separate explicit choice and provenance record.
-- Phase 5B code is committed and pushed as
-  `29691b9aae56701c9fef6a2f14f3797943d3297b` on
-  `phase/5b-cross-platform-os`; local and origin refs match. GitHub's commit
-  status endpoint returned zero statuses, so CI success is not claimed. Initial
-  Windows/macOS profile logic has mocked unit tests; no native Mac, Parrot,
-  Ubuntu, or Metasploitable OS-hardening assessment was collected. Remember
-  that remote Metasploitable network scans do not score its local OS
+- Phase 5B implementation is committed and pushed as
+  `262f5d84cdab8128ef5fdaea038db783558fd320` on
+  `phase/5b-cross-platform-os`; GitHub readback confirms the commit. GitHub's
+  commit-status endpoint returned zero statuses, so CI success is not claimed.
+  Initial Windows/macOS profile logic has mocked unit tests; no native Mac,
+  Parrot, Ubuntu, or Metasploitable OS-hardening assessment was collected.
+  Remember that remote Metasploitable network scans do not score its local OS
   configuration.
 - The Windows/macOS profile checks still need pinned benchmark/control
   mappings and setting-specific evidence capture before provenance preflight
